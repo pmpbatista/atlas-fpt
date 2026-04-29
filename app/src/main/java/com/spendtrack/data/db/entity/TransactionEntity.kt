@@ -1,0 +1,38 @@
+package com.spendtrack.data.db.entity
+
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
+import androidx.room.PrimaryKey
+import com.spendtrack.domain.model.TransactionType
+import java.time.LocalDate
+
+@Entity(
+    tableName = "transactions",
+    foreignKeys = [
+        ForeignKey(
+            entity = CategoryEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["categoryId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = RecurringRuleEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["recurringRuleId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ],
+    indices = [Index("categoryId"), Index("date"), Index("recurringRuleId")]
+)
+data class TransactionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val amount: Double,
+    val type: TransactionType,
+    val categoryId: Long,
+    val date: LocalDate,
+    val note: String? = null,
+    val photoUri: String? = null,
+    val recurringRuleId: Long? = null,
+    val isScheduled: Boolean = false
+)
