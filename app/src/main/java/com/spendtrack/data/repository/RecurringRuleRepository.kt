@@ -33,4 +33,12 @@ class RecurringRuleRepository @Inject constructor(private val dao: RecurringRule
     suspend fun delete(rule: RecurringRule) = withContext(Dispatchers.IO) {
         dao.delete(rule.toEntity())
     }
+
+    suspend fun getById(id: Long): RecurringRule? = withContext(Dispatchers.IO) {
+        dao.getById(id)?.toDomain()
+    }
+
+    suspend fun deleteById(id: Long) = withContext(Dispatchers.IO) {
+        dao.deleteById(id)
+    }
 }

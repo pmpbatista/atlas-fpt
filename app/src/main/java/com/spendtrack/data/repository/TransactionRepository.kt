@@ -60,4 +60,12 @@ class TransactionRepository @Inject constructor(private val dao: TransactionDao)
     suspend fun deleteScheduledForRule(ruleId: Long) = withContext(Dispatchers.IO) {
         dao.deleteScheduledForRule(ruleId)
     }
+
+    suspend fun countRealTransactionsForRule(ruleId: Long): Int = withContext(Dispatchers.IO) {
+        dao.countRealTransactionsForRule(ruleId)
+    }
+
+    suspend fun getLatestForRule(ruleId: Long): Transaction? = withContext(Dispatchers.IO) {
+        dao.getLatestForRule(ruleId)?.toDomain()
+    }
 }

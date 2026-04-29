@@ -81,6 +81,13 @@ interface TransactionDao {
 
     @Query("DELETE FROM transaction_label_cross_ref WHERE transactionId = :transactionId")
     suspend fun deleteAllLabelsForTransaction(transactionId: Long)
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE recurringRuleId = :ruleId AND isScheduled = 0")
+    suspend fun countRealTransactionsForRule(ruleId: Long): Int
+
+    @Transaction
+    @Query("SELECT * FROM transactions WHERE recurringRuleId = :ruleId AND isScheduled = 0 ORDER BY date DESC LIMIT 1")
+    suspend fun getLatestForRule(ruleId: Long): TransactionWithDetails?
 }
 
 data class DailySummary(val date: LocalDate, val totalExpense: Double, val totalIncome: Double)
