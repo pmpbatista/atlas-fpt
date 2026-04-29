@@ -88,6 +88,10 @@ interface TransactionDao {
     @Transaction
     @Query("SELECT * FROM transactions WHERE recurringRuleId = :ruleId AND isScheduled = 0 ORDER BY date DESC LIMIT 1")
     suspend fun getLatestForRule(ruleId: Long): TransactionWithDetails?
+
+    @Transaction
+    @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): TransactionWithDetails?
 }
 
 data class DailySummary(val date: LocalDate, val totalExpense: Double, val totalIncome: Double)

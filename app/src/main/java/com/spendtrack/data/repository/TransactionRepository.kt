@@ -68,4 +68,8 @@ class TransactionRepository @Inject constructor(private val dao: TransactionDao)
     suspend fun getLatestForRule(ruleId: Long): Transaction? = withContext(Dispatchers.IO) {
         dao.getLatestForRule(ruleId)?.toDomain()
     }
+
+    suspend fun getById(id: Long): Transaction? = withContext(Dispatchers.IO) {
+        dao.getById(id)?.toDomain()
+    }
 }
