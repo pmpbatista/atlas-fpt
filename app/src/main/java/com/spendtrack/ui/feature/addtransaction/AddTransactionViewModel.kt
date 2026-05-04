@@ -10,6 +10,7 @@ import com.spendtrack.domain.model.Category
 import com.spendtrack.domain.model.Label
 import com.spendtrack.domain.model.Transaction
 import com.spendtrack.domain.model.TransactionType
+import com.spendtrack.domain.usecase.DeleteTransactionUseCase
 import com.spendtrack.domain.usecase.SaveTransactionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +35,9 @@ data class AddTransactionUiState(
     val settings: AppSettings = AppSettings(),
     val isSaved: Boolean = false,
     val isLoading: Boolean = false,
-    val showCategoryPicker: Boolean = false
+    val showCategoryPicker: Boolean = false,
+    val showDeleteConfirmation: Boolean = false,
+    val isDeleted: Boolean = false
 )
 
 @HiltViewModel
@@ -42,11 +45,13 @@ class AddTransactionViewModel @Inject constructor(
     private val saveTransaction: SaveTransactionUseCase,
     private val categoryRepository: CategoryRepository,
     private val transactionRepository: TransactionRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val deleteTransaction: DeleteTransactionUseCase
 ) : ViewModel() {
 
     private val _form = MutableStateFlow(AddTransactionUiState())
     private var editingTransactionId: Long = 0L
+    private var loadedTransaction: Transaction? = null
 
     val uiState: StateFlow<AddTransactionUiState> = combine(
         _form,
@@ -64,6 +69,7 @@ class AddTransactionViewModel @Inject constructor(
         editingTransactionId = id
         viewModelScope.launch {
             val tx = transactionRepository.getById(id) ?: return@launch
+            loadedTransaction = tx
             _form.update {
                 it.copy(
                     amountCents = (tx.amount * 100).toLong(),
@@ -134,6 +140,18 @@ class AddTransactionViewModel @Inject constructor(
             )
             saveTransaction(tx)
             _form.update { it.copy(isLoading = false, isSaved = true) }
+        }
+    }
+
+    fun onDeleteRequested() { _form.update { it.copy(showDeleteConfirmation = true) } }
+
+    fun onDeleteDismissed() { _form.update { it.copy(showDeleteConfirmation = false) } }
+
+    fun delete() {
+        val tx = loadedTransaction ?: return
+        viewModelScope.launch {
+            deleteTransaction(tx)
+            _form.update { it.copy(isDeleted = true) }
         }
     }
 }

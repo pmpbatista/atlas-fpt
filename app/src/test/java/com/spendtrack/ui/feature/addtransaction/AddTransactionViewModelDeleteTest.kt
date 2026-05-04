@@ -16,7 +16,10 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -25,6 +28,7 @@ import org.junit.Rule
 import org.junit.Test
 import java.time.LocalDate
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AddTransactionViewModelDeleteTest {
 
     @get:Rule
@@ -57,7 +61,7 @@ class AddTransactionViewModelDeleteTest {
     @Before
     fun setup() {
         every { categoryRepository.observeAll() } returns flowOf(emptyList())
-        every { settingsRepository.settings } returns flowOf(AppSettings())
+        every { settingsRepository.settings } returns MutableStateFlow(AppSettings())
         coEvery { transactionRepository.getById(42L) } returns fakeTransaction
         viewModel = AddTransactionViewModel(
             saveTransaction,
