@@ -71,10 +71,10 @@ fun AddTransactionScreen(
     transactionId: Long? = null,
     viewModel: AddTransactionViewModel = hiltViewModel()
 ) {
+    val isEditMode = transactionId != null && transactionId != 0L
+
     LaunchedEffect(transactionId) {
-        if (transactionId != null && transactionId != 0L) {
-            viewModel.loadTransaction(transactionId)
-        }
+        if (isEditMode) viewModel.loadTransaction(transactionId!!)
     }
 
     val uiState by viewModel.uiState.collectAsState()
@@ -93,7 +93,7 @@ fun AddTransactionScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(if (transactionId != null && transactionId != 0L) "Edit Transaction" else "Add Transaction")
+                    Text(if (isEditMode) "Edit Transaction" else "Add Transaction")
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
@@ -101,7 +101,7 @@ fun AddTransactionScreen(
                     }
                 },
                 actions = {
-                    if (transactionId != null && transactionId != 0L) {
+                    if (isEditMode) {
                         IconButton(onClick = viewModel::onDeleteRequested) {
                             Icon(Icons.Default.DeleteOutline, contentDescription = "Delete transaction")
                         }
