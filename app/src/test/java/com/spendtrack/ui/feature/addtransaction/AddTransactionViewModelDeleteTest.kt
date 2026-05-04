@@ -93,6 +93,7 @@ class AddTransactionViewModelDeleteTest {
     @Test
     fun `delete calls use case and sets isDeleted`() = runTest {
         viewModel.loadTransaction(42L)
+        advanceUntilIdle()
         viewModel.uiState.test {
             awaitItem()
             viewModel.delete()
