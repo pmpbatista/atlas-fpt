@@ -20,6 +20,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
@@ -81,6 +83,10 @@ fun AddTransactionScreen(
         if (uiState.isSaved) navController.popBackStack()
     }
 
+    LaunchedEffect(uiState.isDeleted) {
+        if (uiState.isDeleted) navController.popBackStack()
+    }
+
     var showDatePicker by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -92,6 +98,13 @@ fun AddTransactionScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (transactionId != null && transactionId != 0L) {
+                        IconButton(onClick = viewModel::onDeleteRequested) {
+                            Icon(Icons.Default.DeleteOutline, contentDescription = "Delete transaction")
+                        }
                     }
                 }
             )
@@ -253,6 +266,24 @@ fun AddTransactionScreen(
             initialDate = uiState.date,
             onDateSelected = { viewModel.onDateChanged(it) },
             onDismiss = { showDatePicker = false }
+        )
+    }
+
+    if (uiState.showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = viewModel::onDeleteDismissed,
+            title = { Text("Delete transaction?") },
+            text = { Text("This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = viewModel::delete) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::onDeleteDismissed) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 }
