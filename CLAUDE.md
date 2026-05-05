@@ -57,13 +57,13 @@ com.spendtrack/
 ├── SpendTrackApplication.kt
 ├── data/
 │   ├── db/
-│   │   ├── AppDatabase.kt          — Room DB, version 1, seeds Portuguese categories on first create
+│   │   ├── AppDatabase.kt          — Room DB, version 2, seeds Portuguese categories on first create
 │   │   ├── Converters.kt           — LocalDate ↔ String type converter
-│   │   ├── dao/                    — TransactionDao, CategoryDao, LabelDao, RecurringRuleDao
+│   │   ├── dao/                    — TransactionDao, CategoryDao, LabelDao, RecurringRuleDao, PersonDao
 │   │   └── entity/                 — DB entities + mappers to/from domain models
 │   ├── importer/
 │   │   └── CsvImporter.kt          — Parses CSV: date,amount,type,category,note
-│   ├── repository/                 — TransactionRepository, CategoryRepository, LabelRepository, RecurringRuleRepository
+│   ├── repository/                 — TransactionRepository, CategoryRepository, LabelRepository, RecurringRuleRepository, PersonRepository
 │   ├── settings/
 │   │   ├── AppSettings.kt          — data class(currencySymbol, currencyCode)
 │   │   └── SettingsRepository.kt   — StateFlow<AppSettings> backed by SharedPreferences
@@ -74,7 +74,7 @@ com.spendtrack/
 │   ├── RepositoryModule.kt
 │   └── WorkerModule.kt
 ├── domain/
-│   ├── model/                      — Transaction, Category, Label, RecurringRule, CategoryType, TransactionType, RecurringFrequency
+│   ├── model/                      — Transaction, Category, Label, Person, RecurringRule, CategoryType, TransactionType, RecurringFrequency
 │   └── usecase/
 │       ├── SaveTransactionUseCase.kt
 │       ├── DeleteTransactionUseCase.kt  — also cleans up orphaned recurring rules
@@ -82,15 +82,16 @@ com.spendtrack/
 │       ├── GetOverviewUseCase.kt
 │       └── MaterialiseRecurringTransactionsUseCase.kt
 └── ui/
-    ├── component/                  — AmountDisplay, CategoryPickerBottomSheet, LabelChip, MonthSelector, TransactionRow
+    ├── component/                  — AmountDisplay, CategoryPickerBottomSheet, LabelChip, PersonChip, PersonPickerBottomSheet, MonthSelector, TransactionRow
     ├── feature/
     │   ├── addtransaction/         — AddTransactionScreen + ViewModel (dual-purpose: add and edit)
     │   ├── csvimport/              — ImportScreen + ViewModel (NOTE: package is csvimport, not import — reserved keyword)
     │   ├── overview/               — OverviewScreen + ViewModel
+    │   ├── persons/                — PersonsScreen + ViewModel (manage persons list)
     │   ├── settings/               — SettingsScreen + ViewModel
     │   └── timeline/               — TimelineScreen + ViewModel
     ├── navigation/
-    │   └── AppNavGraph.kt          — NavHost + bottom bar; routes: timeline, overview, activity, settings, add_transaction, edit_transaction/{id}, import
+    │   └── AppNavGraph.kt          — NavHost + bottom bar; routes: timeline, overview, activity, settings, add_transaction, edit_transaction/{id}, import, persons
     └── theme/                      — Color.kt, Theme.kt, Type.kt
 ```
 
@@ -101,6 +102,8 @@ com.spendtrack/
 - **Delete flow:** Trash icon in TopAppBar (edit mode only) → confirmation `AlertDialog` → `DeleteTransactionUseCase` → `isDeleted = true` → `LaunchedEffect` pops back stack. Mirrors the `isSaved` save pattern.
 - **Category seeding:** Default Portuguese expense/income categories are inserted via `SeedCallback` when the Room DB is first created.
 - **WorkManager init:** Default WorkManager initialiser is disabled in the manifest; custom init is done via `Configuration.Provider` in `SpendTrackApplication`.
+- **Persons many-to-many:** Mirrors the Labels pattern exactly — `persons` table + `transaction_person_cross_ref` cross-ref table with composite PK and `ON DELETE CASCADE` on both FKs. `TransactionWithDetails` fetches persons via `@Relation(Junction(TransactionPersonCrossRef::class))`. `TransactionRepository.save()` does delete-then-re-insert for cross-refs, same as labels. DB version 2 with `MIGRATION_1_2`.
+- **PersonRepository.save vs insert:** The repository exposes `save()` (consistent with `LabelRepository`); internally it delegates to `PersonDao.insert()` with `OnConflictStrategy.IGNORE`.
 
 ## Navigation Routes
 
@@ -113,6 +116,7 @@ com.spendtrack/
 | `add_transaction` | Add Transaction |
 | `edit_transaction/{transactionId}` | Edit Transaction |
 | `import` | CSV Import |
+| `persons` | Persons management (Settings sub-screen) |
 
 ## CSV Import Format
 
@@ -273,6 +277,9 @@ fun observeTotals(): Flow<List<MyAggregate>>
 - `Activity` screen is a placeholder
 - `save()` in `AddTransactionViewModel` hardcodes `recurringRuleId = null`, which loses the rule link when editing a recurring transaction
 - `delete()` silently no-ops if called before `loadTransaction()` completes (extremely unlikely in practice but untested)
+- Persons: no rename after creation (edit name is not supported)
+- Persons: not shown on `TransactionRow` in the timeline (only visible in the edit screen)
+- Persons: no filtering of timeline/overview by person
 
 ## Repository
 
