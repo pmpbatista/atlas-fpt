@@ -3,11 +3,13 @@ package com.spendtrack.ui.feature.addtransaction
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spendtrack.data.repository.CategoryRepository
+import com.spendtrack.data.repository.PersonRepository
 import com.spendtrack.data.repository.TransactionRepository
 import com.spendtrack.data.settings.AppSettings
 import com.spendtrack.data.settings.SettingsRepository
 import com.spendtrack.domain.model.Category
 import com.spendtrack.domain.model.Label
+import com.spendtrack.domain.model.Person
 import com.spendtrack.domain.model.Transaction
 import com.spendtrack.domain.model.TransactionType
 import com.spendtrack.domain.usecase.DeleteTransactionUseCase
@@ -31,11 +33,14 @@ data class AddTransactionUiState(
     val note: String = "",
     val photoUri: String? = null,
     val labels: List<Label> = emptyList(),
+    val persons: List<Person> = emptyList(),
     val availableCategories: List<Category> = emptyList(),
+    val availablePersons: List<Person> = emptyList(),
     val settings: AppSettings = AppSettings(),
     val isSaved: Boolean = false,
     val isLoading: Boolean = false,
     val showCategoryPicker: Boolean = false,
+    val showPersonPicker: Boolean = false,
     val showDeleteConfirmation: Boolean = false,
     val isDeleted: Boolean = false
 )
@@ -46,7 +51,8 @@ class AddTransactionViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val transactionRepository: TransactionRepository,
     private val settingsRepository: SettingsRepository,
-    private val deleteTransaction: DeleteTransactionUseCase
+    private val deleteTransaction: DeleteTransactionUseCase,
+    private val personRepository: PersonRepository
 ) : ViewModel() {
 
     private val _form = MutableStateFlow(AddTransactionUiState())
@@ -56,9 +62,10 @@ class AddTransactionViewModel @Inject constructor(
     val uiState: StateFlow<AddTransactionUiState> = combine(
         _form,
         categoryRepository.observeAll(),
-        settingsRepository.settings
-    ) { form, categories, settings ->
-        form.copy(availableCategories = categories, settings = settings)
+        settingsRepository.settings,
+        personRepository.observeAll()
+    ) { form, categories, settings, persons ->
+        form.copy(availableCategories = categories, settings = settings, availablePersons = persons)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -78,7 +85,8 @@ class AddTransactionViewModel @Inject constructor(
                     date = tx.date,
                     note = tx.note ?: "",
                     photoUri = tx.photoUri,
-                    labels = tx.labels
+                    labels = tx.labels,
+                    persons = tx.persons
                 )
             }
         }
@@ -120,6 +128,20 @@ class AddTransactionViewModel @Inject constructor(
         _form.update { it.copy(labels = it.labels.filter { l -> l.id != label.id }) }
     }
 
+    fun onPersonAdded(person: Person) {
+        _form.update { s ->
+            if (s.persons.any { it.id == person.id }) s
+            else s.copy(persons = s.persons + person)
+        }
+    }
+
+    fun onPersonRemoved(person: Person) {
+        _form.update { it.copy(persons = it.persons.filter { p -> p.id != person.id }) }
+    }
+
+    fun onShowPersonPicker() { _form.update { it.copy(showPersonPicker = true) } }
+    fun onDismissPersonPicker() { _form.update { it.copy(showPersonPicker = false) } }
+
     fun save() {
         val state = _form.value
         val category = state.selectedCategory ?: return
@@ -135,7 +157,7 @@ class AddTransactionViewModel @Inject constructor(
                 note = state.note.takeIf { it.isNotBlank() },
                 photoUri = state.photoUri,
                 labels = state.labels,
-                persons = emptyList(),
+                persons = state.persons,
                 recurringRuleId = null,
                 isScheduled = false
             )

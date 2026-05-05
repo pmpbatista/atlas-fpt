@@ -6,67 +6,45 @@ import com.spendtrack.data.repository.PersonRepository
 import com.spendtrack.data.repository.TransactionRepository
 import com.spendtrack.data.settings.AppSettings
 import com.spendtrack.data.settings.SettingsRepository
-import com.spendtrack.domain.model.Category
-import com.spendtrack.domain.model.CategoryType
-import com.spendtrack.domain.model.Transaction
-import com.spendtrack.domain.model.TransactionType
+import com.spendtrack.domain.model.Person
 import com.spendtrack.domain.usecase.DeleteTransactionUseCase
 import com.spendtrack.domain.usecase.SaveTransactionUseCase
 import com.spendtrack.util.MainDispatcherRule
-import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class AddTransactionViewModelDeleteTest {
+class AddTransactionViewModelPersonsTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
     private val saveTransaction: SaveTransactionUseCase = mockk(relaxed = true)
     private val categoryRepository: CategoryRepository = mockk()
-    private val transactionRepository: TransactionRepository = mockk()
+    private val transactionRepository: TransactionRepository = mockk(relaxed = true)
     private val settingsRepository: SettingsRepository = mockk()
     private val deleteTransaction: DeleteTransactionUseCase = mockk(relaxed = true)
     private val personRepository: PersonRepository = mockk()
 
-    private lateinit var viewModel: AddTransactionViewModel
+    private val alice = Person(1L, "Alice")
+    private val bob = Person(2L, "Bob")
 
-    private val fakeCategory = Category(
-        id = 1L, name = "Food", iconRes = "", color = 0, type = CategoryType.EXPENSE
-    )
-    private val fakeTransaction = Transaction(
-        id = 42L,
-        amount = 10.0,
-        type = TransactionType.EXPENSE,
-        category = fakeCategory,
-        date = LocalDate.of(2026, 1, 1),
-        note = null,
-        photoUri = null,
-        labels = emptyList(),
-        persons = emptyList(),
-        recurringRuleId = null,
-        isScheduled = false
-    )
+    private lateinit var viewModel: AddTransactionViewModel
 
     @Before
     fun setup() {
         every { categoryRepository.observeAll() } returns flowOf(emptyList())
         every { settingsRepository.settings } returns MutableStateFlow(AppSettings())
-        every { personRepository.observeAll() } returns flowOf(emptyList())
-        coEvery { transactionRepository.getById(42L) } returns fakeTransaction
+        every { personRepository.observeAll() } returns flowOf(listOf(alice, bob))
         viewModel = AddTransactionViewModel(
             saveTransaction,
             categoryRepository,
@@ -78,37 +56,67 @@ class AddTransactionViewModelDeleteTest {
     }
 
     @Test
-    fun `onDeleteRequested sets showDeleteConfirmation true`() = runTest {
+    fun `availablePersons populated from repository`() = runTest {
         viewModel.uiState.test {
-            awaitItem() // initial state
-            viewModel.onDeleteRequested()
-            assertTrue(awaitItem().showDeleteConfirmation)
+            val state = awaitItem()
+            assertTrue(state.availablePersons.containsAll(listOf(alice, bob)))
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `onDeleteDismissed sets showDeleteConfirmation false`() = runTest {
+    fun `onPersonAdded adds person to state`() = runTest {
         viewModel.uiState.test {
             awaitItem()
-            viewModel.onDeleteRequested()
-            awaitItem() // showDeleteConfirmation = true
-            viewModel.onDeleteDismissed()
-            assertFalse(awaitItem().showDeleteConfirmation)
+            viewModel.onPersonAdded(alice)
+            val state = awaitItem()
+            assertTrue(state.persons.contains(alice))
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `delete calls use case and sets isDeleted`() = runTest {
-        viewModel.loadTransaction(42L)
-        advanceUntilIdle()
+    fun `onPersonAdded is idempotent`() = runTest {
+        viewModel.onPersonAdded(alice)
+        viewModel.onPersonAdded(alice)
         viewModel.uiState.test {
-            awaitItem()
-            viewModel.delete()
-            assertTrue(awaitItem().isDeleted)
+            val state = awaitItem()
+            assertTrue(state.persons.count { it.id == alice.id } == 1)
             cancelAndIgnoreRemainingEvents()
         }
-        coVerify { deleteTransaction(fakeTransaction) }
+    }
+
+    @Test
+    fun `onPersonRemoved removes person from state`() = runTest {
+        viewModel.onPersonAdded(alice)
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.onPersonRemoved(alice)
+            val state = awaitItem()
+            assertFalse(state.persons.contains(alice))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `onShowPersonPicker sets showPersonPicker true`() = runTest {
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.onShowPersonPicker()
+            assertTrue(awaitItem().showPersonPicker)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `onDismissPersonPicker sets showPersonPicker false`() = runTest {
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.onShowPersonPicker()
+            awaitItem()
+            viewModel.onDismissPersonPicker()
+            assertFalse(awaitItem().showPersonPicker)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }
