@@ -17,7 +17,7 @@ class PersonRepository @Inject constructor(private val dao: PersonDao) {
     fun observeAll(): Flow<List<Person>> =
         dao.observeAll().map { list -> list.map { it.toDomain() } }
 
-    suspend fun insert(person: Person): Long = withContext(Dispatchers.IO) {
+    suspend fun save(person: Person): Long = withContext(Dispatchers.IO) {
         dao.insert(person.toEntity())
     }
 

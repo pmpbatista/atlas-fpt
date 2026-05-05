@@ -1,5 +1,7 @@
 package com.spendtrack.ui.component
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -30,28 +33,45 @@ fun PersonPickerBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
-        LazyColumn(modifier = Modifier.padding(bottom = 16.dp)) {
-            items(allPersons, key = { it.id }) { person ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = selectedPersons.any { it.id == person.id },
-                        onCheckedChange = { onToggle(person) }
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = person.name)
+        Column(modifier = Modifier.padding(bottom = 16.dp)) {
+            Text(
+                text = "Link persons",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
+            )
+            if (allPersons.isEmpty()) {
+                Text(
+                    text = "No persons yet. Add them in Settings.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(16.dp)
+                )
+            } else {
+                LazyColumn {
+                    items(allPersons, key = { it.id }) { person ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onToggle(person) }
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = selectedPersons.any { it.id == person.id },
+                                onCheckedChange = null
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = person.name)
+                        }
+                    }
                 }
             }
-            item {
-                Text(
-                    text = "Persons managed in Settings",
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
+            Text(
+                text = "Persons managed in Settings",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
         }
     }
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -87,14 +88,15 @@ fun PersonsScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.weight(1f)
                         )
-                        IconButton(onClick = { viewModel.requestDelete(person) }) {
+                        IconButton(onClick = { viewModel.onRequestDelete(person) }) {
                             Icon(
                                 Icons.Default.DeleteOutline,
                                 contentDescription = "Delete ${person.name}",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.error
                             )
                         }
                     }
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                 }
             }
         }
@@ -110,8 +112,8 @@ fun PersonsScreen(
     uiState.deleteTarget?.let { target ->
         val count = uiState.deleteTransactionCount
         AlertDialog(
-            onDismissRequest = viewModel::dismissDelete,
-            title = { Text("Delete ${target.name}?") },
+            onDismissRequest = viewModel::onDismissDelete,
+            title = { Text("Delete \"${target.name}\"?") },
             text = {
                 if (count == 0) {
                     Text("This cannot be undone.")
@@ -120,12 +122,12 @@ fun PersonsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = viewModel::confirmDelete) {
+                TextButton(onClick = viewModel::onConfirmDelete) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::dismissDelete) {
+                TextButton(onClick = viewModel::onDismissDelete) {
                     Text("Cancel")
                 }
             }

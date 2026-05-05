@@ -244,7 +244,7 @@ fun AddTransactionScreen(
                 ) {
                     uiState.persons.forEach { person ->
                         PersonChip(
-                            person = person,
+                            name = person.name,
                             onRemove = { viewModel.onPersonRemoved(person) }
                         )
                     }
@@ -269,7 +269,7 @@ fun AddTransactionScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Link persons…",
+                    text = if (uiState.persons.isEmpty()) "Link persons (optional)" else "Edit linked persons",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

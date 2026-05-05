@@ -36,10 +36,10 @@ class PersonRepositoryTest {
     }
 
     @Test
-    fun `insert delegates to dao`() = runTest {
+    fun `save delegates to dao`() = runTest {
         coEvery { dao.insert(PersonEntity(0L, "Bob")) } returns 5L
 
-        val result = repo.insert(Person(0L, "Bob"))
+        val result = repo.save(Person(0L, "Bob"))
 
         coVerify { dao.insert(PersonEntity(0L, "Bob")) }
         assertEquals(5L, result)

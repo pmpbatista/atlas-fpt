@@ -47,22 +47,22 @@ class PersonsViewModel @Inject constructor(
         if (trimmed.isBlank()) return
         _form.update { it.copy(showAddDialog = false) }
         viewModelScope.launch {
-            personRepository.insert(Person(id = 0L, name = trimmed))
+            personRepository.save(Person(id = 0L, name = trimmed))
         }
     }
 
-    fun requestDelete(person: Person) {
+    fun onRequestDelete(person: Person) {
         viewModelScope.launch {
             val count = personRepository.countTransactions(person.id)
             _form.update { it.copy(deleteTarget = person, deleteTransactionCount = count) }
         }
     }
 
-    fun dismissDelete() {
+    fun onDismissDelete() {
         _form.update { it.copy(deleteTarget = null, deleteTransactionCount = 0) }
     }
 
-    fun confirmDelete() {
+    fun onConfirmDelete() {
         val target = _form.value.deleteTarget ?: return
         _form.update { it.copy(deleteTarget = null, deleteTransactionCount = 0) }
         viewModelScope.launch {

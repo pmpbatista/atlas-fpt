@@ -14,7 +14,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -72,13 +71,13 @@ class PersonsViewModelTest {
 
     @Test
     fun `addPerson calls repository and dismisses dialog`() = runTest {
-        coEvery { personRepository.insert(any()) } returns 3L
+        coEvery { personRepository.save(any()) } returns 3L
         viewModel.onShowAddDialog()
 
         viewModel.addPerson("Charlie")
         advanceUntilIdle()
 
-        coVerify { personRepository.insert(Person(0L, "Charlie")) }
+        coVerify { personRepository.save(Person(0L, "Charlie")) }
         viewModel.uiState.test {
             assertFalse(awaitItem().showAddDialog)
             cancelAndIgnoreRemainingEvents()
@@ -89,14 +88,14 @@ class PersonsViewModelTest {
     fun `addPerson trims whitespace`() = runTest {
         viewModel.addPerson("  Dave  ")
         advanceUntilIdle()
-        coVerify { personRepository.insert(Person(0L, "Dave")) }
+        coVerify { personRepository.save(Person(0L, "Dave")) }
     }
 
     @Test
-    fun `requestDelete sets deleteTarget and count`() = runTest {
+    fun `onRequestDelete sets deleteTarget and count`() = runTest {
         coEvery { personRepository.countTransactions(1L) } returns 3
 
-        viewModel.requestDelete(alice)
+        viewModel.onRequestDelete(alice)
         advanceUntilIdle()
 
         viewModel.uiState.test {
@@ -108,12 +107,12 @@ class PersonsViewModelTest {
     }
 
     @Test
-    fun `dismissDelete clears deleteTarget`() = runTest {
+    fun `onDismissDelete clears deleteTarget`() = runTest {
         coEvery { personRepository.countTransactions(1L) } returns 0
-        viewModel.requestDelete(alice)
+        viewModel.onRequestDelete(alice)
         advanceUntilIdle()
 
-        viewModel.dismissDelete()
+        viewModel.onDismissDelete()
 
         viewModel.uiState.test {
             assertNull(awaitItem().deleteTarget)
@@ -122,12 +121,12 @@ class PersonsViewModelTest {
     }
 
     @Test
-    fun `confirmDelete calls repository and clears target`() = runTest {
+    fun `onConfirmDelete calls repository and clears target`() = runTest {
         coEvery { personRepository.countTransactions(1L) } returns 0
-        viewModel.requestDelete(alice)
+        viewModel.onRequestDelete(alice)
         advanceUntilIdle()
 
-        viewModel.confirmDelete()
+        viewModel.onConfirmDelete()
         advanceUntilIdle()
 
         coVerify { personRepository.delete(alice) }
