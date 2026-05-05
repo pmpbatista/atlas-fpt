@@ -1,4 +1,4 @@
-package com.spendtrack.ui.feature.import
+package com.spendtrack.ui.feature.csvimport
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts

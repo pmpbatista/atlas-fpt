@@ -22,7 +22,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.spendtrack.ui.feature.addtransaction.AddTransactionScreen
-import com.spendtrack.ui.feature.import.ImportScreen
+import com.spendtrack.ui.feature.csvimport.ImportScreen
 import com.spendtrack.ui.feature.overview.OverviewScreen
 import com.spendtrack.ui.feature.settings.SettingsScreen
 import com.spendtrack.ui.feature.timeline.TimelineScreen
@@ -118,9 +118,7 @@ private fun AppBottomBar(navController: NavController) {
 @Composable
 private fun ActivityPlaceholder() {
     androidx.compose.foundation.layout.Box(
-        modifier = Modifier
-            .then(Modifier)
-            .padding(androidx.compose.ui.unit.dp.times(0f).let { androidx.compose.foundation.layout.PaddingValues() }),
+        modifier = Modifier.then(Modifier),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
         Text("Activity — coming soon")

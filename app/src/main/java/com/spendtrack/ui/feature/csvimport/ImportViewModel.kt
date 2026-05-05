@@ -1,4 +1,4 @@
-package com.spendtrack.ui.feature.import
+package com.spendtrack.ui.feature.csvimport
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
