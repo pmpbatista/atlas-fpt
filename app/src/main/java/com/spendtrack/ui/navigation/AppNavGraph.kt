@@ -24,6 +24,7 @@ import androidx.navigation.compose.rememberNavController
 import com.spendtrack.ui.feature.addtransaction.AddTransactionScreen
 import com.spendtrack.ui.feature.csvimport.ImportScreen
 import com.spendtrack.ui.feature.overview.OverviewScreen
+import com.spendtrack.ui.feature.persons.PersonsScreen
 import com.spendtrack.ui.feature.settings.SettingsScreen
 import com.spendtrack.ui.feature.timeline.TimelineScreen
 
@@ -37,6 +38,7 @@ sealed class Screen(val route: String) {
         fun createRoute(id: Long) = "edit_transaction/$id"
     }
     object Import : Screen("import")
+    object Persons : Screen("persons")
 }
 
 private val bottomNavItems = listOf(
@@ -87,6 +89,9 @@ fun AppNavGraph() {
             }
             composable(Screen.Import.route) {
                 ImportScreen(navController = navController)
+            }
+            composable(Screen.Persons.route) {
+                PersonsScreen(navController = navController)
             }
         }
     }

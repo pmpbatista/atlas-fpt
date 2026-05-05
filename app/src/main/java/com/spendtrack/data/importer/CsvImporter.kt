@@ -99,6 +99,7 @@ class CsvImporter @Inject constructor(
                     note = note,
                     photoUri = null,
                     labels = emptyList(),
+                    persons = emptyList(),
                     recurringRuleId = null,
                     isScheduled = false
                 )

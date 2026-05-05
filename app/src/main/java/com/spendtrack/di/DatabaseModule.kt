@@ -4,6 +4,7 @@ import android.content.Context
 import com.spendtrack.data.db.AppDatabase
 import com.spendtrack.data.db.dao.CategoryDao
 import com.spendtrack.data.db.dao.LabelDao
+import com.spendtrack.data.db.dao.PersonDao
 import com.spendtrack.data.db.dao.RecurringRuleDao
 import com.spendtrack.data.db.dao.TransactionDao
 import dagger.Module
@@ -33,4 +34,7 @@ object DatabaseModule {
 
     @Provides
     fun provideRecurringRuleDao(db: AppDatabase): RecurringRuleDao = db.recurringRuleDao()
+
+    @Provides
+    fun providePersonDao(db: AppDatabase): PersonDao = db.personDao()
 }

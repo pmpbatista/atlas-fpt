@@ -10,6 +10,7 @@ A personal finance tracker for Android. Log expenses and income, organise them b
 - **Categories** — pre-seeded with common expense and income categories in Portuguese; colour-coded
 - **Recurring transactions** — define rules (daily / weekly / monthly / yearly) that generate scheduled entries automatically
 - **Labels** — tag transactions for cross-category filtering
+- **Persons** — link transactions to one or more named people; manage the persons list from Settings
 - **CSV import** — import transaction history from a CSV file (format: `date, amount, type, category, note`)
 - **Currency setting** — configurable currency symbol and code
 - **Delete transactions** — remove any transaction from the edit screen with a confirmation step

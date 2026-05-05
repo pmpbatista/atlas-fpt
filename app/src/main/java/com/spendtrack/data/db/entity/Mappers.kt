@@ -2,6 +2,7 @@ package com.spendtrack.data.db.entity
 
 import com.spendtrack.domain.model.Category
 import com.spendtrack.domain.model.Label
+import com.spendtrack.domain.model.Person
 import com.spendtrack.domain.model.RecurringRule
 import com.spendtrack.domain.model.Transaction
 
@@ -14,6 +15,7 @@ fun TransactionWithDetails.toDomain(): Transaction = Transaction(
     note = transaction.note,
     photoUri = transaction.photoUri,
     labels = labels.map { it.toDomain() },
+    persons = persons.map { it.toDomain() },
     recurringRuleId = transaction.recurringRuleId,
     isScheduled = transaction.isScheduled
 )
@@ -37,6 +39,10 @@ fun Category.toEntity(): CategoryEntity = CategoryEntity(
 fun LabelEntity.toDomain(): Label = Label(id = id, name = name)
 
 fun Label.toEntity(): LabelEntity = LabelEntity(id = id, name = name)
+
+fun PersonEntity.toDomain(): Person = Person(id = id, name = name)
+
+fun Person.toEntity(): PersonEntity = PersonEntity(id = id, name = name)
 
 fun RecurringRuleEntity.toDomain(): RecurringRule = RecurringRule(
     id = id,

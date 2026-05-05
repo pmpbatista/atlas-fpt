@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -59,6 +60,15 @@ fun SettingsScreen(
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
         )
+        HorizontalDivider()
+
+        SettingsRow(
+            icon = Icons.Default.Person,
+            title = "Persons",
+            subtitle = "Manage persons",
+            onClick = { navController.navigate(Screen.Persons.route) }
+        )
+
         HorizontalDivider()
 
         SettingsRow(

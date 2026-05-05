@@ -15,12 +15,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -56,6 +59,8 @@ import com.spendtrack.domain.model.TransactionType
 import com.spendtrack.ui.component.AmountDisplay
 import com.spendtrack.ui.component.CategoryPickerBottomSheet
 import com.spendtrack.ui.component.LabelChip
+import com.spendtrack.ui.component.PersonChip
+import com.spendtrack.ui.component.PersonPickerBottomSheet
 import com.spendtrack.ui.theme.ExpenseColor
 import com.spendtrack.ui.theme.IncomeColor
 import java.time.Instant
@@ -115,6 +120,12 @@ fun AddTransactionScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Type toggle
@@ -233,7 +244,48 @@ fun AddTransactionScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            // Person chips
+            if (uiState.persons.isNotEmpty()) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    uiState.persons.forEach { person ->
+                        PersonChip(
+                            name = person.name,
+                            onRemove = { viewModel.onPersonRemoved(person) }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // Link persons row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { viewModel.onShowPersonPicker() }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (uiState.persons.isEmpty()) "Link persons (optional)" else "Edit linked persons",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+        } // end scrollable content column
 
             // Save button
             Button(
@@ -247,6 +299,18 @@ fun AddTransactionScreen(
                 Text("Save")
             }
         }
+    }
+
+    if (uiState.showPersonPicker) {
+        PersonPickerBottomSheet(
+            allPersons = uiState.availablePersons,
+            selectedPersons = uiState.persons,
+            onToggle = { person ->
+                if (uiState.persons.any { it.id == person.id }) viewModel.onPersonRemoved(person)
+                else viewModel.onPersonAdded(person)
+            },
+            onDismiss = viewModel::onDismissPersonPicker
+        )
     }
 
     if (uiState.showCategoryPicker) {
