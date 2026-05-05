@@ -135,6 +135,137 @@ Unit tests live in `app/src/test/java/com/spendtrack/`. Test infrastructure:
 
 Run: `./gradlew testDebugUnitTest`
 
+## Code Patterns
+
+### ViewModel
+
+All ViewModels use `@HiltViewModel` + `@Inject constructor`. State is a `data class` exposed as `StateFlow` built from `combine().stateIn()`. Mutable state lives in a private `MutableStateFlow<UiState>` named `_form` (or similar). Navigation side-effects (`isSaved`, `isDeleted`) are boolean fields set to `true` after an action completes; the screen observes them with `LaunchedEffect` and calls `navController.popBackStack()`.
+
+```kotlin
+data class MyUiState(
+    val someValue: String = "",
+    val isSaved: Boolean = false,    // set true → screen navigates back
+    val isLoading: Boolean = false
+)
+
+@HiltViewModel
+class MyViewModel @Inject constructor(
+    private val someRepository: SomeRepository,
+    private val settingsRepository: SettingsRepository
+) : ViewModel() {
+
+    private val _form = MutableStateFlow(MyUiState())
+
+    val uiState: StateFlow<MyUiState> = combine(
+        _form,
+        settingsRepository.settings          // StateFlow<AppSettings>
+    ) { form, settings ->
+        form.copy(/* merge settings if needed */)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = MyUiState()
+    )
+
+    fun onValueChanged(v: String) { _form.update { it.copy(someValue = v) } }
+
+    fun save() {
+        _form.update { it.copy(isLoading = true) }
+        viewModelScope.launch {
+            someRepository.save(...)
+            _form.update { it.copy(isLoading = false, isSaved = true) }
+        }
+    }
+}
+```
+
+Screen navigation-back pattern (place after `val uiState by viewModel.uiState.collectAsState()`):
+```kotlin
+LaunchedEffect(uiState.isSaved) {
+    if (uiState.isSaved) navController.popBackStack()
+}
+```
+
+### Hilt DI
+
+Use cases inject directly via `@Inject constructor` — no module registration needed. Repositories and DAOs are provided in `di/DatabaseModule.kt` (`@Provides`) and `di/RepositoryModule.kt`. To add a new singleton dependency:
+
+```kotlin
+// di/DatabaseModule.kt — add a @Provides for a new DAO:
+@Provides
+fun provideMyDao(db: AppDatabase): MyDao = db.myDao()
+
+// Use cases need NO module entry — Hilt resolves them automatically:
+class MyUseCase @Inject constructor(
+    private val myRepository: MyRepository
+) {
+    suspend operator fun invoke(...) { ... }
+}
+
+// ViewModels need NO module entry either:
+@HiltViewModel
+class MyViewModel @Inject constructor(
+    private val myUseCase: MyUseCase
+) : ViewModel()
+```
+
+### Adding a New Screen / Route
+
+**1. Add a `Screen` entry** in `ui/navigation/AppNavGraph.kt`:
+```kotlin
+sealed class Screen(val route: String) {
+    // existing entries...
+    object MyScreen : Screen("my_screen")
+    // with args:
+    object MyDetail : Screen("my_detail/{itemId}") {
+        fun createRoute(id: Long) = "my_detail/$id"
+    }
+}
+```
+
+**2. Register a `composable` in the `NavHost`** in the same file:
+```kotlin
+composable(Screen.MyScreen.route) {
+    MyScreen(navController = navController)
+}
+// with args:
+composable(Screen.MyDetail.route) { backStack ->
+    val id = backStack.arguments?.getString("itemId")?.toLongOrNull()
+    MyDetailScreen(navController = navController, itemId = id)
+}
+```
+
+**3. Add to bottom nav** (optional) by appending to `bottomNavItems`:
+```kotlin
+Triple(Screen.MyScreen, Icons.Default.SomeIcon, "Label")
+```
+
+Navigate to it from any screen with `navController.navigate(Screen.MyScreen.route)`.
+
+### Room DAO Queries
+
+Any query returning a `Transaction` must use `TransactionWithDetails` (not `TransactionEntity`) and be annotated with `@Transaction` so Room fetches the related `CategoryEntity` and `List<LabelEntity>` in one go. The result maps to domain via `.toDomain()`.
+
+```kotlin
+// In a DAO interface:
+@Transaction
+@Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
+suspend fun getById(id: Long): TransactionWithDetails?
+
+// In the repository, convert to domain:
+suspend fun getById(id: Long): Transaction? = withContext(Dispatchers.IO) {
+    dao.getById(id)?.toDomain()
+}
+```
+
+For aggregate queries that don't return full transaction rows (summaries, totals), `@Transaction` is not needed — define a plain `data class` for the result:
+```kotlin
+data class MyAggregate(val categoryId: Long, val total: Double)
+
+@Query("SELECT categoryId, SUM(amount) as total FROM transactions GROUP BY categoryId")
+fun observeTotals(): Flow<List<MyAggregate>>
+```
+
 ## Known Gaps / Future Work
 
 - No app icon / launcher resources (`res/` only has `values/`)
