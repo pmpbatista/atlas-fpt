@@ -9,6 +9,7 @@ import androidx.room.Transaction
 import androidx.room.Update
 import com.spendtrack.data.db.entity.TransactionEntity
 import com.spendtrack.data.db.entity.TransactionLabelCrossRef
+import com.spendtrack.data.db.entity.TransactionPersonCrossRef
 import com.spendtrack.data.db.entity.TransactionWithDetails
 import com.spendtrack.domain.model.TransactionType
 import kotlinx.coroutines.flow.Flow
@@ -81,6 +82,12 @@ interface TransactionDao {
 
     @Query("DELETE FROM transaction_label_cross_ref WHERE transactionId = :transactionId")
     suspend fun deleteAllLabelsForTransaction(transactionId: Long)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertPersonCrossRef(crossRef: TransactionPersonCrossRef)
+
+    @Query("DELETE FROM transaction_person_cross_ref WHERE transactionId = :transactionId")
+    suspend fun deleteAllPersonsForTransaction(transactionId: Long)
 
     @Query("SELECT COUNT(*) FROM transactions WHERE recurringRuleId = :ruleId AND isScheduled = 0")
     suspend fun countRealTransactionsForRule(ruleId: Long): Int

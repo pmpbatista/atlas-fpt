@@ -5,6 +5,7 @@ import com.spendtrack.data.db.dao.DailySummary
 import com.spendtrack.data.db.dao.MonthlySummary
 import com.spendtrack.data.db.dao.TransactionDao
 import com.spendtrack.data.db.entity.TransactionLabelCrossRef
+import com.spendtrack.data.db.entity.TransactionPersonCrossRef
 import com.spendtrack.data.db.entity.toDomain
 import com.spendtrack.data.db.entity.toEntity
 import com.spendtrack.domain.model.Transaction
@@ -49,6 +50,10 @@ class TransactionRepository @Inject constructor(private val dao: TransactionDao)
         dao.deleteAllLabelsForTransaction(id)
         transaction.labels.forEach { label ->
             dao.insertCrossRef(TransactionLabelCrossRef(id, label.id))
+        }
+        dao.deleteAllPersonsForTransaction(id)
+        transaction.persons.forEach { person ->
+            dao.insertPersonCrossRef(TransactionPersonCrossRef(id, person.id))
         }
         id
     }
