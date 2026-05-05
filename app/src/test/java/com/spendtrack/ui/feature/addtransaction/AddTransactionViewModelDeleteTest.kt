@@ -54,6 +54,7 @@ class AddTransactionViewModelDeleteTest {
         note = null,
         photoUri = null,
         labels = emptyList(),
+        persons = emptyList(),
         recurringRuleId = null,
         isScheduled = false
     )

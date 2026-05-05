@@ -11,6 +11,7 @@ data class Transaction(
     val note: String?,
     val photoUri: String?,
     val labels: List<Label>,
+    val persons: List<Person>,
     val recurringRuleId: Long?,
     val isScheduled: Boolean
 )

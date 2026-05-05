@@ -135,6 +135,7 @@ class AddTransactionViewModel @Inject constructor(
                 note = state.note.takeIf { it.isNotBlank() },
                 photoUri = state.photoUri,
                 labels = state.labels,
+                persons = emptyList(),
                 recurringRuleId = null,
                 isScheduled = false
             )

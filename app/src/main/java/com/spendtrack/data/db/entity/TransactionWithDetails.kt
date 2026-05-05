@@ -20,5 +20,15 @@ data class TransactionWithDetails(
             entityColumn = "labelId"
         )
     )
-    val labels: List<LabelEntity>
+    val labels: List<LabelEntity>,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "id",
+        associateBy = Junction(
+            value = TransactionPersonCrossRef::class,
+            parentColumn = "transactionId",
+            entityColumn = "personId"
+        )
+    )
+    val persons: List<PersonEntity>
 )

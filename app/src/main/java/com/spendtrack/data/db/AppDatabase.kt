@@ -14,7 +14,9 @@ import com.spendtrack.data.db.entity.CategoryEntity
 import com.spendtrack.data.db.entity.LabelEntity
 import com.spendtrack.data.db.entity.RecurringRuleEntity
 import com.spendtrack.data.db.entity.TransactionEntity
+import com.spendtrack.data.db.entity.PersonEntity
 import com.spendtrack.data.db.entity.TransactionLabelCrossRef
+import com.spendtrack.data.db.entity.TransactionPersonCrossRef
 import com.spendtrack.domain.model.CategoryType
 
 @Database(
@@ -24,6 +26,8 @@ import com.spendtrack.domain.model.CategoryType
         LabelEntity::class,
         TransactionLabelCrossRef::class,
         RecurringRuleEntity::class,
+        PersonEntity::class,
+        TransactionPersonCrossRef::class,
     ],
     version = 1,
     exportSchema = false
