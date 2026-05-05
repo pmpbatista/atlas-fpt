@@ -5,16 +5,18 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.spendtrack.data.db.dao.CategoryDao
 import com.spendtrack.data.db.dao.LabelDao
+import com.spendtrack.data.db.dao.PersonDao
 import com.spendtrack.data.db.dao.RecurringRuleDao
 import com.spendtrack.data.db.dao.TransactionDao
 import com.spendtrack.data.db.entity.CategoryEntity
 import com.spendtrack.data.db.entity.LabelEntity
+import com.spendtrack.data.db.entity.PersonEntity
 import com.spendtrack.data.db.entity.RecurringRuleEntity
 import com.spendtrack.data.db.entity.TransactionEntity
-import com.spendtrack.data.db.entity.PersonEntity
 import com.spendtrack.data.db.entity.TransactionLabelCrossRef
 import com.spendtrack.data.db.entity.TransactionPersonCrossRef
 import com.spendtrack.domain.model.CategoryType
@@ -29,7 +31,7 @@ import com.spendtrack.domain.model.CategoryType
         PersonEntity::class,
         TransactionPersonCrossRef::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -39,10 +41,26 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun labelDao(): LabelDao
     abstract fun recurringRuleDao(): RecurringRuleDao
+    abstract fun personDao(): PersonDao
 
     companion object {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `persons` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `transaction_person_cross_ref` (`transactionId` INTEGER NOT NULL, `personId` INTEGER NOT NULL, PRIMARY KEY(`transactionId`, `personId`), FOREIGN KEY(`transactionId`) REFERENCES `transactions`(`id`) ON DELETE CASCADE, FOREIGN KEY(`personId`) REFERENCES `persons`(`id`) ON DELETE CASCADE)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_transaction_person_cross_ref_personId` ON `transaction_person_cross_ref` (`personId`)"
+                )
+            }
+        }
+
         fun create(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "spendtrack.db")
+                .addMigrations(MIGRATION_1_2)
                 .addCallback(SeedCallback())
                 .build()
     }
