@@ -1,8 +1,12 @@
 package com.spendtrack.data.db
 
 import androidx.room.TypeConverter
+import com.spendtrack.domain.model.AssetType
 import com.spendtrack.domain.model.CategoryType
+import com.spendtrack.domain.model.EnergyRating
+import com.spendtrack.domain.model.InterestType
 import com.spendtrack.domain.model.RecurringFrequency
+import com.spendtrack.domain.model.ReferenceRate
 import com.spendtrack.domain.model.TransactionType
 import java.time.LocalDate
 
@@ -33,4 +37,28 @@ class Converters {
 
     @TypeConverter
     fun toRecurringFrequency(frequency: RecurringFrequency?): String? = frequency?.name
+
+    @TypeConverter
+    fun fromAssetType(value: String?): AssetType? = value?.let { AssetType.valueOf(it) }
+
+    @TypeConverter
+    fun toAssetType(type: AssetType?): String? = type?.name
+
+    @TypeConverter
+    fun fromInterestType(value: String?): InterestType? = value?.let { InterestType.valueOf(it) }
+
+    @TypeConverter
+    fun toInterestType(type: InterestType?): String? = type?.name
+
+    @TypeConverter
+    fun fromReferenceRate(value: String?): ReferenceRate? = value?.let { ReferenceRate.valueOf(it) }
+
+    @TypeConverter
+    fun toReferenceRate(rate: ReferenceRate?): String? = rate?.name
+
+    @TypeConverter
+    fun fromEnergyRating(value: String?): EnergyRating? = value?.let { EnergyRating.valueOf(it) }
+
+    @TypeConverter
+    fun toEnergyRating(rating: EnergyRating?): String? = rating?.name
 }

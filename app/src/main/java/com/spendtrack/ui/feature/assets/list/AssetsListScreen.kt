@@ -1,0 +1,90 @@
+package com.spendtrack.ui.feature.assets.list
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
+import com.spendtrack.domain.model.AssetType
+import com.spendtrack.ui.feature.assets.component.AssetListRow
+import com.spendtrack.ui.feature.assets.component.TotalWealthHeader
+import com.spendtrack.ui.feature.assets.typepicker.AssetTypePickerSheet
+import com.spendtrack.ui.navigation.Screen
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AssetsListScreen(
+    navController: NavController,
+    viewModel: AssetsListViewModel = hiltViewModel()
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var showTypePicker by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = { TopAppBar(title = { Text("Assets") }) },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showTypePicker = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Add asset")
+            }
+        }
+    ) { padding ->
+        if (state.isEmpty) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "No assets yet\nTap + to add one",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+                item { TotalWealthHeader(total = state.total) }
+                items(state.items, key = { it.id }) { asset ->
+                    AssetListRow(
+                        item = asset,
+                        onClick = {
+                            when (asset.type) {
+                                AssetType.REAL_ESTATE ->
+                                    navController.navigate(Screen.RealEstateDetail.createRoute(asset.id))
+                                AssetType.FINANCIAL -> Unit // not navigable yet
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    if (showTypePicker) {
+        AssetTypePickerSheet(
+            onDismiss = { showTypePicker = false },
+            onRealEstate = {
+                showTypePicker = false
+                navController.navigate(Screen.AddRealEstate.route)
+            }
+        )
+    }
+}

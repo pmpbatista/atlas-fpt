@@ -7,14 +7,18 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.spendtrack.data.db.dao.AssetDao
 import com.spendtrack.data.db.dao.CategoryDao
 import com.spendtrack.data.db.dao.LabelDao
 import com.spendtrack.data.db.dao.PersonDao
+import com.spendtrack.data.db.dao.RealEstateDao
 import com.spendtrack.data.db.dao.RecurringRuleDao
 import com.spendtrack.data.db.dao.TransactionDao
+import com.spendtrack.data.db.entity.AssetEntity
 import com.spendtrack.data.db.entity.CategoryEntity
 import com.spendtrack.data.db.entity.LabelEntity
 import com.spendtrack.data.db.entity.PersonEntity
+import com.spendtrack.data.db.entity.RealEstateDetailsEntity
 import com.spendtrack.data.db.entity.RecurringRuleEntity
 import com.spendtrack.data.db.entity.TransactionEntity
 import com.spendtrack.data.db.entity.TransactionLabelCrossRef
@@ -30,8 +34,10 @@ import com.spendtrack.domain.model.CategoryType
         RecurringRuleEntity::class,
         PersonEntity::class,
         TransactionPersonCrossRef::class,
+        AssetEntity::class,
+        RealEstateDetailsEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -42,6 +48,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun labelDao(): LabelDao
     abstract fun recurringRuleDao(): RecurringRuleDao
     abstract fun personDao(): PersonDao
+    abstract fun assetDao(): AssetDao
+    abstract fun realEstateDao(): RealEstateDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -60,9 +68,20 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun create(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "spendtrack.db")
-                .addMigrations(MIGRATION_1_2)
                 .addCallback(SeedCallback())
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
+    }
+}
+
+// SQL strings copied verbatim from Room's generated AppDatabase_Impl.createAllTables.
+// Room's runtime identity-hash check rejects any deviation (e.g. inline `INTEGER PRIMARY KEY`
+// vs trailing `PRIMARY KEY(col)`) — keep these in sync if entities change.
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `assets` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `type` TEXT NOT NULL, `name` TEXT NOT NULL, `currencyCode` TEXT NOT NULL, `currentValue` REAL NOT NULL, `currentValueUpdatedAt` INTEGER NOT NULL, `purchaseDate` TEXT, `notes` TEXT)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS `real_estate_details` (`assetId` INTEGER NOT NULL, `cost` REAL NOT NULL, `investedCapital` REAL NOT NULL, `debtAmount` REAL, `outstandingDebt` REAL, `interestType` TEXT, `fixedRate` REAL, `referenceRate` TEXT, `spread` REAL, `creditEndDate` TEXT, `district` TEXT NOT NULL, `council` TEXT NOT NULL, `parish` TEXT NOT NULL, `sizeM2` REAL NOT NULL, `energyRating` TEXT NOT NULL, PRIMARY KEY(`assetId`), FOREIGN KEY(`assetId`) REFERENCES `assets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_real_estate_details_assetId` ON `real_estate_details` (`assetId`)")
     }
 }
 

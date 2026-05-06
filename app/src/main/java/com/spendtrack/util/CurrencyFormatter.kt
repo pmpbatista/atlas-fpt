@@ -1,6 +1,8 @@
 package com.spendtrack.util
 
 import com.spendtrack.domain.model.TransactionType
+import java.util.Currency
+import java.util.Locale
 
 object CurrencyFormatter {
 
@@ -11,13 +13,25 @@ object CurrencyFormatter {
 
     fun formatAbsolute(amount: Double, symbol: String): String = "$symbol${formatAmount(amount)}"
 
+    /**
+     * Formats [amount] with the symbol resolved from a 3-letter ISO 4217 [currencyCode]
+     * (e.g. "USD" -> "$", "EUR" -> "€"). Falls back to the code itself when JVM/Android
+     * can't resolve the symbol on the device locale.
+     */
+    fun formatAbsoluteForCurrency(amount: Double, currencyCode: String): String {
+        val symbol = runCatching {
+            Currency.getInstance(currencyCode).getSymbol(Locale.getDefault())
+        }.getOrDefault(currencyCode)
+        return "$symbol${formatAmount(amount)}"
+    }
+
     private fun formatAmount(amount: Double): String {
-        return if (amount >= 1000) {
+        return if (kotlin.math.abs(amount) >= 1000) {
             // Portuguese thousands: 1.471,00
-            val s = String.format("%,.2f", amount)  // "1,471.00" (US locale)
+            val s = String.format(Locale.US, "%,.2f", amount)
             s.replace(",", "X").replace(".", ",").replace("X", ".")
         } else {
-            String.format("%.2f", amount).replace(".", ",")
+            String.format(Locale.US, "%.2f", amount).replace(".", ",")
         }
     }
 }
