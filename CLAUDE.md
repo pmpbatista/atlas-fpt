@@ -85,13 +85,14 @@ com.spendtrack/
     ├── component/                  — AmountDisplay, CategoryPickerBottomSheet, LabelChip, PersonChip, PersonPickerBottomSheet, MonthSelector, TransactionRow
     ├── feature/
     │   ├── addtransaction/         — AddTransactionScreen + ViewModel (dual-purpose: add and edit)
+    │   ├── assets/                 — Assets list + type picker + real estate detail/edit
     │   ├── csvimport/              — ImportScreen + ViewModel (NOTE: package is csvimport, not import — reserved keyword)
     │   ├── overview/               — OverviewScreen + ViewModel
     │   ├── persons/                — PersonsScreen + ViewModel (manage persons list)
     │   ├── settings/               — SettingsScreen + ViewModel
     │   └── timeline/               — TimelineScreen + ViewModel
     ├── navigation/
-    │   └── AppNavGraph.kt          — NavHost + bottom bar; routes: timeline, overview, activity, settings, add_transaction, edit_transaction/{id}, import, persons
+    │   └── AppNavGraph.kt          — NavHost + bottom bar; routes: timeline, overview, assets, settings, add_transaction, edit_transaction/{id}, import, persons, real_estate_detail/{id}, add_real_estate, edit_real_estate/{id}
     └── theme/                      — Color.kt, Theme.kt, Type.kt
 ```
 
@@ -111,12 +112,15 @@ com.spendtrack/
 |---|---|
 | `timeline` | Timeline (start destination) |
 | `overview` | Overview with charts |
-| `activity` | Placeholder (coming soon) |
 | `settings` | Settings |
 | `add_transaction` | Add Transaction |
 | `edit_transaction/{transactionId}` | Edit Transaction |
 | `import` | CSV Import |
 | `persons` | Persons management (Settings sub-screen) |
+| `assets` | Assets list (replaces Activity) |
+| `real_estate_detail/{assetId}` | Real Estate detail (read-only) |
+| `add_real_estate` | Add Real Estate |
+| `edit_real_estate/{assetId}` | Edit Real Estate |
 
 ## CSV Import Format
 
@@ -274,12 +278,16 @@ fun observeTotals(): Flow<List<MyAggregate>>
 
 - No app icon / launcher resources (`res/` only has `values/`)
 - No instrumented tests (`androidTest/`)
-- `Activity` screen is a placeholder
 - `save()` in `AddTransactionViewModel` hardcodes `recurringRuleId = null`, which loses the rule link when editing a recurring transaction
 - `delete()` silently no-ops if called before `loadTransaction()` completes (extremely unlikely in practice but untested)
 - Persons: no rename after creation (edit name is not supported)
 - Persons: not shown on `TransactionRow` in the timeline (only visible in the edit screen)
 - Persons: no filtering of timeline/overview by person
+- Financial assets (ETF / stocks / crypto) — separate spec, includes Yahoo Finance + 15-min cache
+- Linking transactions to assets (assetId FK on transactions)
+- Live Euribor rate fetching for variable-rate real estate
+- Photos for real-estate properties
+- Instrumented tests (Room migration tests, DAO query tests, FK CASCADE verification, Compose UI tests)
 
 ## Repository
 
