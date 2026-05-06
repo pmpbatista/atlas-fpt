@@ -4,6 +4,7 @@ import android.content.Context
 import com.spendtrack.data.db.AppDatabase
 import com.spendtrack.data.db.dao.AssetDao
 import com.spendtrack.data.db.dao.CategoryDao
+import com.spendtrack.data.db.dao.FinancialDao
 import com.spendtrack.data.db.dao.LabelDao
 import com.spendtrack.data.db.dao.PersonDao
 import com.spendtrack.data.db.dao.RealEstateDao
@@ -45,4 +46,7 @@ object DatabaseModule {
 
     @Provides
     fun provideRealEstateDao(db: AppDatabase): RealEstateDao = db.realEstateDao()
+
+    @Provides
+    fun provideFinancialDao(db: AppDatabase): FinancialDao = db.financialDao()
 }
