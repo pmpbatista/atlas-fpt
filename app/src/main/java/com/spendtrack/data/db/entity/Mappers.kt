@@ -2,6 +2,8 @@ package com.spendtrack.data.db.entity
 
 import com.spendtrack.domain.model.AssetType
 import com.spendtrack.domain.model.Category
+import com.spendtrack.domain.model.FinancialAsset
+import com.spendtrack.domain.model.FinancialLot
 import com.spendtrack.domain.model.Label
 import com.spendtrack.domain.model.Person
 import com.spendtrack.domain.model.RealEstateAsset
@@ -138,3 +140,36 @@ fun RealEstateAsset.toDetailsEntity(assetId: Long): RealEstateDetailsEntity =
         sizeM2 = sizeM2,
         energyRating = energyRating
     )
+
+fun FinancialLotEntity.toDomain(): FinancialLot = FinancialLot(
+    id = id,
+    purchaseDate = purchaseDate,
+    quantity = quantity,
+    pricePerUnit = pricePerUnit,
+)
+
+fun FinancialLot.toEntity(assetId: Long): FinancialLotEntity = FinancialLotEntity(
+    id = id,
+    assetId = assetId,
+    purchaseDate = purchaseDate,
+    quantity = quantity,
+    pricePerUnit = pricePerUnit,
+)
+
+fun AssetWithFinancial.toFinancialDomain(): FinancialAsset {
+    val h = requireNotNull(holding) { "financial_holdings missing for asset ${asset.id}" }
+    require(asset.type == AssetType.FINANCIAL) {
+        "asset ${asset.id} is ${asset.type}, not FINANCIAL"
+    }
+    return FinancialAsset(
+        id = asset.id,
+        name = asset.name,
+        ticker = h.ticker,
+        displayName = h.displayName,
+        currencyCode = asset.currencyCode,
+        latestPrice = h.latestPrice,
+        latestPriceAt = h.latestPriceAt?.let { Instant.ofEpochMilli(it) },
+        notes = asset.notes,
+        lots = lots.sortedBy { it.purchaseDate }.map { it.toDomain() },
+    )
+}
