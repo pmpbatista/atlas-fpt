@@ -17,6 +17,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -67,7 +68,17 @@ fun RealEstateDetailScreen(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Couldn't load property")
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("Couldn't load property")
+                    Spacer(
+                        Modifier.height(8.dp)
+                    )
+                    TextButton(
+                        onClick = { navController.popBackStack() }
+                    ) { Text("Go back") }
+                }
             }
             state.asset == null -> Box(
                 modifier = Modifier.fillMaxSize().padding(padding),

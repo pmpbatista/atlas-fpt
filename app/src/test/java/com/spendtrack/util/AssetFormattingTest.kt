@@ -105,4 +105,71 @@ class AssetFormattingTest {
         assertEquals("3,20%", formatPercent(3.2))
         assertEquals("-0,50%", formatPercent(-0.5))
     }
+
+    // Helper to construct RealEstateAsset for describeInterest tests
+    private fun realEstate(
+        interestType: com.spendtrack.domain.model.InterestType? = null,
+        fixedRate: Double? = null,
+        referenceRate: com.spendtrack.domain.model.ReferenceRate? = null,
+        spread: Double? = null
+    ) = com.spendtrack.domain.model.RealEstateAsset(
+        id = 1L,
+        name = "x",
+        currencyCode = "EUR",
+        currentValue = 100_000.0,
+        currentValueUpdatedAt = java.time.Instant.parse("2026-01-01T00:00:00Z"),
+        purchaseDate = java.time.LocalDate.of(2020, 1, 1),
+        notes = null,
+        cost = 100_000.0,
+        investedCapital = 100_000.0,
+        debtAmount = if (interestType != null) 50_000.0 else null,
+        outstandingDebt = if (interestType != null) 50_000.0 else null,
+        interestType = interestType,
+        fixedRate = fixedRate,
+        referenceRate = referenceRate,
+        spread = spread,
+        creditEndDate = if (interestType != null) java.time.LocalDate.of(2050, 1, 1) else null,
+        district = "Lisboa",
+        council = "Lisboa",
+        parish = "Alvalade",
+        sizeM2 = 85.0,
+        energyRating = com.spendtrack.domain.model.EnergyRating.B
+    )
+
+    @Test
+    fun `describeInterest returns Bought outright for cash purchase`() {
+        val asset = realEstate(interestType = null)
+        assertEquals("Bought outright", describeInterest(asset))
+    }
+
+    @Test
+    fun `describeInterest formats FIXED rate`() {
+        val asset = realEstate(
+            interestType = com.spendtrack.domain.model.InterestType.FIXED,
+            fixedRate = 3.2
+        )
+        assertEquals("Fixed 3,20%", describeInterest(asset))
+    }
+
+    @Test
+    fun `describeInterest formats VARIABLE with positive spread`() {
+        val asset = realEstate(
+            interestType = com.spendtrack.domain.model.InterestType.VARIABLE,
+            referenceRate = com.spendtrack.domain.model.ReferenceRate.EURIBOR_12M,
+            spread = 1.5
+        )
+        val result = describeInterest(asset)
+        assertEquals("Euribor 12M + 1,50%", result)
+    }
+
+    @Test
+    fun `describeInterest formats VARIABLE with negative spread`() {
+        val asset = realEstate(
+            interestType = com.spendtrack.domain.model.InterestType.VARIABLE,
+            referenceRate = com.spendtrack.domain.model.ReferenceRate.EURIBOR_12M,
+            spread = -0.2
+        )
+        val result = describeInterest(asset)
+        assertEquals("Euribor 12M − 0,20%", result)
+    }
 }
