@@ -5,7 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -22,6 +22,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.spendtrack.ui.feature.addtransaction.AddTransactionScreen
+import com.spendtrack.ui.feature.assets.list.AssetsListScreen
+import com.spendtrack.ui.feature.assets.realestate.detail.RealEstateDetailScreen
 import com.spendtrack.ui.feature.csvimport.ImportScreen
 import com.spendtrack.ui.feature.overview.OverviewScreen
 import com.spendtrack.ui.feature.persons.PersonsScreen
@@ -31,7 +33,7 @@ import com.spendtrack.ui.feature.timeline.TimelineScreen
 sealed class Screen(val route: String) {
     object Timeline : Screen("timeline")
     object Overview : Screen("overview")
-    object Activity : Screen("activity")
+    object Assets : Screen("assets")
     object Settings : Screen("settings")
     object AddTransaction : Screen("add_transaction")
     object EditTransaction : Screen("edit_transaction/{transactionId}") {
@@ -39,12 +41,19 @@ sealed class Screen(val route: String) {
     }
     object Import : Screen("import")
     object Persons : Screen("persons")
+    object RealEstateDetail : Screen("real_estate_detail/{assetId}") {
+        fun createRoute(id: Long) = "real_estate_detail/$id"
+    }
+    object AddRealEstate : Screen("add_real_estate")
+    object EditRealEstate : Screen("edit_real_estate/{assetId}") {
+        fun createRoute(id: Long) = "edit_real_estate/$id"
+    }
 }
 
 private val bottomNavItems = listOf(
     Triple(Screen.Timeline, Icons.Default.Home, "Timeline"),
     Triple(Screen.Overview, Icons.Default.BarChart, "Overview"),
-    Triple(Screen.Activity, Icons.Default.Search, "Activity"),
+    Triple(Screen.Assets, Icons.Default.AccountBalance, "Assets"),
     Triple(Screen.Settings, Icons.Default.MoreHoriz, "More"),
 )
 
@@ -74,8 +83,11 @@ fun AppNavGraph() {
             composable(Screen.Overview.route) {
                 OverviewScreen()
             }
-            composable(Screen.Activity.route) {
-                ActivityPlaceholder()
+            composable(Screen.Assets.route) {
+                AssetsListScreen(navController = navController)
+            }
+            composable(Screen.RealEstateDetail.route) { backStack ->
+                RealEstateDetailScreen(navController = navController)
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(navController = navController)
@@ -120,12 +132,3 @@ private fun AppBottomBar(navController: NavController) {
     }
 }
 
-@Composable
-private fun ActivityPlaceholder() {
-    androidx.compose.foundation.layout.Box(
-        modifier = Modifier.then(Modifier),
-        contentAlignment = androidx.compose.ui.Alignment.Center
-    ) {
-        Text("Activity — coming soon")
-    }
-}
