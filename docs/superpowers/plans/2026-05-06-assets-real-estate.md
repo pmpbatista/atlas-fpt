@@ -607,49 +607,18 @@ Update the `create` companion to register the migration. Replace the existing `c
                 .build()
 ```
 
-Add this top-level migration definition above the `private class SeedCallback` declaration (i.e., still inside `AppDatabase.kt` but outside the class):
+Add this top-level migration definition above the `private class SeedCallback` declaration (i.e., still inside `AppDatabase.kt` but outside the class). The SQL must be **copied verbatim from Room's generated `AppDatabase_Impl.createAllTables`** — Room's runtime identity-hash check rejects any syntactic deviation, even when the resulting schema is functionally equivalent. After running an initial build, look up the strings under `app/build/generated/ksp/debug/java/com/spendtrack/data/db/AppDatabase_Impl.java`, find `createAllTables`, and copy the relevant `db.execSQL(...)` lines for the new tables and indices into the migration verbatim. Notably: the parent table uses inline `INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL`, but the child detail table uses a separate `PRIMARY KEY(\`assetId\`)` clause at the end of the column list (NOT inline) — Room will reject the inline form even though it produces an identical schema.
 
 ```kotlin
 import androidx.room.migration.Migration
 
+// SQL strings copied verbatim from Room's generated AppDatabase_Impl.createAllTables.
+// Room's runtime identity-hash check rejects any deviation (e.g. inline `INTEGER PRIMARY KEY`
+// vs trailing `PRIMARY KEY(col)`) — keep these in sync if entities change.
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
-        db.execSQL(
-            """
-            CREATE TABLE IF NOT EXISTS `assets` (
-              `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-              `type` TEXT NOT NULL,
-              `name` TEXT NOT NULL,
-              `currencyCode` TEXT NOT NULL,
-              `currentValue` REAL NOT NULL,
-              `currentValueUpdatedAt` INTEGER NOT NULL,
-              `purchaseDate` TEXT,
-              `notes` TEXT
-            )
-            """.trimIndent()
-        )
-        db.execSQL(
-            """
-            CREATE TABLE IF NOT EXISTS `real_estate_details` (
-              `assetId` INTEGER PRIMARY KEY NOT NULL,
-              `cost` REAL NOT NULL,
-              `investedCapital` REAL NOT NULL,
-              `debtAmount` REAL,
-              `outstandingDebt` REAL,
-              `interestType` TEXT,
-              `fixedRate` REAL,
-              `referenceRate` TEXT,
-              `spread` REAL,
-              `creditEndDate` TEXT,
-              `district` TEXT NOT NULL,
-              `council` TEXT NOT NULL,
-              `parish` TEXT NOT NULL,
-              `sizeM2` REAL NOT NULL,
-              `energyRating` TEXT NOT NULL,
-              FOREIGN KEY(`assetId`) REFERENCES `assets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
-            )
-            """.trimIndent()
-        )
+        db.execSQL("CREATE TABLE IF NOT EXISTS `assets` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `type` TEXT NOT NULL, `name` TEXT NOT NULL, `currencyCode` TEXT NOT NULL, `currentValue` REAL NOT NULL, `currentValueUpdatedAt` INTEGER NOT NULL, `purchaseDate` TEXT, `notes` TEXT)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS `real_estate_details` (`assetId` INTEGER NOT NULL, `cost` REAL NOT NULL, `investedCapital` REAL NOT NULL, `debtAmount` REAL, `outstandingDebt` REAL, `interestType` TEXT, `fixedRate` REAL, `referenceRate` TEXT, `spread` REAL, `creditEndDate` TEXT, `district` TEXT NOT NULL, `council` TEXT NOT NULL, `parish` TEXT NOT NULL, `sizeM2` REAL NOT NULL, `energyRating` TEXT NOT NULL, PRIMARY KEY(`assetId`), FOREIGN KEY(`assetId`) REFERENCES `assets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_real_estate_details_assetId` ON `real_estate_details` (`assetId`)")
     }
 }
