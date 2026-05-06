@@ -24,6 +24,7 @@ import androidx.navigation.compose.rememberNavController
 import com.spendtrack.ui.feature.addtransaction.AddTransactionScreen
 import com.spendtrack.ui.feature.assets.list.AssetsListScreen
 import com.spendtrack.ui.feature.assets.realestate.detail.RealEstateDetailScreen
+import com.spendtrack.ui.feature.assets.realestate.edit.AddEditRealEstateScreen
 import com.spendtrack.ui.feature.csvimport.ImportScreen
 import com.spendtrack.ui.feature.overview.OverviewScreen
 import com.spendtrack.ui.feature.persons.PersonsScreen
@@ -88,6 +89,12 @@ fun AppNavGraph() {
             }
             composable(Screen.RealEstateDetail.route) { backStack ->
                 RealEstateDetailScreen(navController = navController)
+            }
+            composable(Screen.AddRealEstate.route) {
+                AddEditRealEstateScreen(navController = navController)
+            }
+            composable(Screen.EditRealEstate.route) {
+                AddEditRealEstateScreen(navController = navController)
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(navController = navController)
