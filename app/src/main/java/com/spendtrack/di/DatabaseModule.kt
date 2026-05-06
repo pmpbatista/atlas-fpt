@@ -2,9 +2,11 @@ package com.spendtrack.di
 
 import android.content.Context
 import com.spendtrack.data.db.AppDatabase
+import com.spendtrack.data.db.dao.AssetDao
 import com.spendtrack.data.db.dao.CategoryDao
 import com.spendtrack.data.db.dao.LabelDao
 import com.spendtrack.data.db.dao.PersonDao
+import com.spendtrack.data.db.dao.RealEstateDao
 import com.spendtrack.data.db.dao.RecurringRuleDao
 import com.spendtrack.data.db.dao.TransactionDao
 import dagger.Module
@@ -37,4 +39,10 @@ object DatabaseModule {
 
     @Provides
     fun providePersonDao(db: AppDatabase): PersonDao = db.personDao()
+
+    @Provides
+    fun provideAssetDao(db: AppDatabase): AssetDao = db.assetDao()
+
+    @Provides
+    fun provideRealEstateDao(db: AppDatabase): RealEstateDao = db.realEstateDao()
 }
