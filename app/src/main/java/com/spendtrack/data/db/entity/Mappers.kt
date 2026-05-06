@@ -1,10 +1,13 @@
 package com.spendtrack.data.db.entity
 
+import com.spendtrack.domain.model.AssetType
 import com.spendtrack.domain.model.Category
 import com.spendtrack.domain.model.Label
 import com.spendtrack.domain.model.Person
+import com.spendtrack.domain.model.RealEstateAsset
 import com.spendtrack.domain.model.RecurringRule
 import com.spendtrack.domain.model.Transaction
+import java.time.Instant
 
 fun TransactionWithDetails.toDomain(): Transaction = Transaction(
     id = transaction.id,
@@ -73,3 +76,65 @@ fun Transaction.toEntity(): TransactionEntity = TransactionEntity(
     recurringRuleId = recurringRuleId,
     isScheduled = isScheduled
 )
+
+fun AssetWithRealEstate.toRealEstateDomain(): RealEstateAsset {
+    val d = requireNotNull(details) { "real_estate_details missing for asset ${asset.id}" }
+    require(asset.type == AssetType.REAL_ESTATE) {
+        "asset ${asset.id} is ${asset.type}, not REAL_ESTATE"
+    }
+    return RealEstateAsset(
+        id = asset.id,
+        name = asset.name,
+        currencyCode = asset.currencyCode,
+        currentValue = asset.currentValue,
+        currentValueUpdatedAt = Instant.ofEpochMilli(asset.currentValueUpdatedAt),
+        purchaseDate = requireNotNull(asset.purchaseDate) {
+            "purchaseDate is required for real estate"
+        },
+        notes = asset.notes,
+        cost = d.cost,
+        investedCapital = d.investedCapital,
+        debtAmount = d.debtAmount,
+        outstandingDebt = d.outstandingDebt,
+        interestType = d.interestType,
+        fixedRate = d.fixedRate,
+        referenceRate = d.referenceRate,
+        spread = d.spread,
+        creditEndDate = d.creditEndDate,
+        district = d.district,
+        council = d.council,
+        parish = d.parish,
+        sizeM2 = d.sizeM2,
+        energyRating = d.energyRating
+    )
+}
+
+fun RealEstateAsset.toAssetEntity(currentValueUpdatedAtMillis: Long): AssetEntity = AssetEntity(
+    id = id,
+    type = AssetType.REAL_ESTATE,
+    name = name,
+    currencyCode = currencyCode,
+    currentValue = currentValue,
+    currentValueUpdatedAt = currentValueUpdatedAtMillis,
+    purchaseDate = purchaseDate,
+    notes = notes
+)
+
+fun RealEstateAsset.toDetailsEntity(assetId: Long): RealEstateDetailsEntity =
+    RealEstateDetailsEntity(
+        assetId = assetId,
+        cost = cost,
+        investedCapital = investedCapital,
+        debtAmount = debtAmount,
+        outstandingDebt = outstandingDebt,
+        interestType = interestType,
+        fixedRate = fixedRate,
+        referenceRate = referenceRate,
+        spread = spread,
+        creditEndDate = creditEndDate,
+        district = district,
+        council = council,
+        parish = parish,
+        sizeM2 = sizeM2,
+        energyRating = energyRating
+    )
