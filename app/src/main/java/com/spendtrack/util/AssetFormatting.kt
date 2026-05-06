@@ -79,3 +79,29 @@ fun describeInterest(asset: RealEstateAsset): String = when (asset.interestType)
         "$ref ${signedPercent(spread)}"
     }
 }
+
+/**
+ * Formats a quantity with decimal precision adapted to magnitude.
+ * Examples: 100.0 -> "100", 10.5 -> "10.5", 0.001234 -> "0.001234", 1.23e-7 -> "0.00000012"
+ */
+fun formatQuantity(qty: Double): String {
+    val abs = kotlin.math.abs(qty)
+    val raw = when {
+        abs >= 100 -> String.format(java.util.Locale.US, "%.0f", qty)
+        abs >= 1   -> String.format(java.util.Locale.US, "%.4f", qty).trimEnd('0').trimEnd('.')
+        abs >= 0.001 -> String.format(java.util.Locale.US, "%.6f", qty).trimEnd('0').trimEnd('.')
+        else -> String.format(java.util.Locale.US, "%.8f", qty).trimEnd('0').trimEnd('.')
+    }
+    return raw
+}
+
+/**
+ * Formats a signed currency amount: "+ €123,45" or "− €50,00". The sign uses a Unicode
+ * minus (U+2212) for symmetry with [signedPercent].
+ */
+fun formatSignedCurrency(amount: Double, currencyCode: String): String {
+    val abs = kotlin.math.abs(amount)
+    val formatted = com.spendtrack.util.CurrencyFormatter.formatAbsoluteForCurrency(abs, currencyCode)
+    val sign = if (amount < 0) "−" else "+"
+    return "$sign $formatted"
+}
