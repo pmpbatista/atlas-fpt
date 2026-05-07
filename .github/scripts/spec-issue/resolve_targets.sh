@@ -25,8 +25,16 @@ resolve_targets() {
   fi
 
   # Sweep mode: list open issues with no spec branch yet.
+  # Capture gh's output explicitly so auth/network failure surfaces as a
+  # non-zero return instead of silently producing an empty list.
+  local open_issues
+  if ! open_issues=$(gh issue list --state open --limit 200 --json number -q '.[].number'); then
+    echo "::error::gh issue list failed (auth or network)" >&2
+    return 1
+  fi
+
   local n
-  for n in $(gh issue list --state open --limit 200 --json number -q '.[].number'); do
+  for n in $open_issues; do
     if ! remote_spec_branch_exists "$n"; then
       printf '%s\n' "$n"
     fi

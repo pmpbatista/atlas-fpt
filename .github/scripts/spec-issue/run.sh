@@ -17,13 +17,20 @@ push_spec_and_pr() {
   local spec_src="$2"
   local discovery_src="$3"
 
-  local title slug_str branch spec_path today_date default_branch
+  local default_branch
+  default_branch=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name)
+
+  # Always return to the default branch on function exit so a partial failure
+  # (e.g. push succeeds but `gh pr create` fails) doesn't leak the spec branch
+  # as the working tree's HEAD into the next sweep iteration.
+  trap "git checkout \"$default_branch\" >/dev/null 2>&1 || true" RETURN
+
+  local title slug_str branch spec_path today_date
   title=$(gh issue view "$n" --json title -q .title)
   slug_str=$(slug "$title")
   branch="spec/issue-${n}-${slug_str}"
   today_date=$(date -u +%Y-%m-%d)
   spec_path="docs/superpowers/specs/${today_date}-issue-${n}-${slug_str}-design.md"
-  default_branch=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name)
 
   git checkout -b "$branch"
   mkdir -p "$(dirname "$spec_path")"
@@ -46,14 +53,14 @@ push_spec_and_pr() {
 
   gh issue comment "$n" --body "Spec PR opened: ${pr_url}" \
     || echo "::warning::issue comment failed for #${n}; PR is the canonical artifact"
-
-  # Return to the default branch so the next issue starts from a clean state.
-  git checkout "$default_branch"
 }
 
 main() {
   local targets
-  targets=$(resolve_targets "${ISSUE_NUMBER:-}")
+  if ! targets=$(resolve_targets "${ISSUE_NUMBER:-}"); then
+    echo "::error::failed to resolve target issues (gh auth or network problem?)"
+    return 1
+  fi
   if [[ -z "$targets" ]]; then
     echo "::notice::no eligible issues — nothing to do"
     return 0
