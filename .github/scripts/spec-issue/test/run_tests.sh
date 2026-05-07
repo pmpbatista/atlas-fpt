@@ -33,6 +33,7 @@ echo "--------------------------------"
 # Until any helpers exist, the runner has nothing to do — emit a banner.
 
 if [[ -f "${SCRIPT_DIR}/slug.sh" ]]; then
+  source "${SCRIPT_DIR}/slug.sh"
   source "${SCRIPT_DIR}/test/test_slug.sh"
 fi
 
