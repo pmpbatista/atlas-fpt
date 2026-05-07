@@ -38,6 +38,7 @@ if [[ -f "${SCRIPT_DIR}/slug.sh" ]]; then
 fi
 
 if [[ -f "${SCRIPT_DIR}/call_claude.sh" ]]; then
+  source "${SCRIPT_DIR}/call_claude.sh"
   source "${SCRIPT_DIR}/test/test_parse_response.sh"
 fi
 
