@@ -2,20 +2,28 @@
 # Library: defines `build_bundle()`. Emits a Claude Messages API payload as
 # a single JSON object on stdout.
 
-# Captured at source time — the directory of this script — used by build_bundle
-# to locate sibling files like system_prompt.txt regardless of how the function
-# is later invoked.
-SPEC_ISSUE_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Caller contract: ${SCRIPT_DIR} must be set to the directory of this script
+# before build_bundle is invoked. run.sh (the orchestrator) computes it via
+# $(dirname "$0") and sources us. For standalone smoke tests, set it manually:
+#   SCRIPT_DIR="$(pwd)/.github/scripts/spec-issue"
+# We rely on SCRIPT_DIR rather than BASH_SOURCE because bash 3.2 (default on
+# macOS) stores only the basename in BASH_SOURCE[0], breaking dirname-based
+# self-location.
 
 build_bundle() {
   local issue_number="$1"
+
+  if [[ -z "${SCRIPT_DIR:-}" ]]; then
+    echo "::error::build_bundle: SCRIPT_DIR is not set; caller must export it before sourcing" >&2
+    return 1
+  fi
 
   local issue_json spec_md claude_md tree_listing system_prompt
   issue_json=$(gh issue view "$issue_number" --json number,title,body,labels)
   spec_md=$(cat SPEC.md 2>/dev/null || printf '%s' '(SPEC.md missing)')
   claude_md=$(cat CLAUDE.md 2>/dev/null || printf '%s' '(CLAUDE.md missing)')
   tree_listing=$(tree -L 3 -d app/src/main/java/ 2>/dev/null | head -n 200 || printf '%s' '(tree not available)')
-  system_prompt=$(cat "${SPEC_ISSUE_SCRIPT_DIR}/system_prompt.txt")
+  system_prompt=$(cat "${SCRIPT_DIR}/system_prompt.txt")
 
   # Pull the 3 most-recent example specs into separate strings so jq can
   # JSON-encode each one cleanly. If fewer than 3 exist, the missing slots
