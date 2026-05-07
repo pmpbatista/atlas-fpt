@@ -46,7 +46,16 @@ fun FinancialDetailScreen(
 
     LaunchedEffect(state.isDeleted) { if (state.isDeleted) navController.popBackStack() }
 
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(state.errorMessage) {
+        state.errorMessage?.let {
+            snackbar.showSnackbar(it)
+            viewModel.clearErrorMessage()
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = {
