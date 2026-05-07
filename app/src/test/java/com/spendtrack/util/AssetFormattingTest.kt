@@ -172,4 +172,36 @@ class AssetFormattingTest {
         val result = describeInterest(asset)
         assertEquals("Euribor 12M − 0,20%", result)
     }
+
+    @Test fun `formatQuantity uses no decimals for ge 100`() {
+        assertEquals("100", formatQuantity(100.0))
+        assertEquals("12345", formatQuantity(12345.0))
+    }
+
+    @Test fun `formatQuantity uses up to 4 decimals between 1 and 100`() {
+        assertEquals("10.5", formatQuantity(10.5))
+        assertEquals("1.2345", formatQuantity(1.2345))
+        assertEquals("3", formatQuantity(3.0))
+    }
+
+    @Test fun `formatQuantity uses up to 6 decimals between 0_001 and 1`() {
+        assertEquals("0.001234", formatQuantity(0.001234))
+        assertEquals("0.5", formatQuantity(0.5))
+    }
+
+    @Test fun `formatQuantity uses up to 8 decimals below 0_001`() {
+        assertEquals("0.00000012", formatQuantity(0.00000012))
+    }
+
+    @Test fun `formatSignedCurrency positive`() {
+        assertEquals("+ €123,45", formatSignedCurrency(123.45, "EUR"))
+    }
+
+    @Test fun `formatSignedCurrency negative`() {
+        assertEquals("− €50,00", formatSignedCurrency(-50.0, "EUR"))
+    }
+
+    @Test fun `formatSignedCurrency zero treated as positive`() {
+        assertEquals("+ €0,00", formatSignedCurrency(0.0, "EUR"))
+    }
 }

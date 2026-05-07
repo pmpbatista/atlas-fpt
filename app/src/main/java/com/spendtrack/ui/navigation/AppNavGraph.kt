@@ -21,7 +21,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.spendtrack.ui.feature.addtransaction.AddTransactionScreen
+import com.spendtrack.ui.feature.assets.financial.add.AddFinancialAssetScreen
+import com.spendtrack.ui.feature.assets.financial.addlot.AddLotScreen
+import com.spendtrack.ui.feature.assets.financial.detail.FinancialDetailScreen
 import com.spendtrack.ui.feature.assets.list.AssetsListScreen
 import com.spendtrack.ui.feature.assets.realestate.detail.RealEstateDetailScreen
 import com.spendtrack.ui.feature.assets.realestate.edit.AddEditRealEstateScreen
@@ -48,6 +53,14 @@ sealed class Screen(val route: String) {
     object AddRealEstate : Screen("add_real_estate")
     object EditRealEstate : Screen("edit_real_estate/{assetId}") {
         fun createRoute(id: Long) = "edit_real_estate/$id"
+    }
+    object FinancialDetail : Screen("financial_detail/{assetId}") {
+        fun createRoute(id: Long) = "financial_detail/$id"
+    }
+    object AddFinancialAsset : Screen("add_financial_asset")
+    object AddLot : Screen("add_lot/{assetId}?lotId={lotId}") {
+        fun createRoute(assetId: Long) = "add_lot/$assetId"
+        fun createRouteEdit(assetId: Long, lotId: Long) = "add_lot/$assetId?lotId=$lotId"
     }
 }
 
@@ -111,6 +124,25 @@ fun AppNavGraph() {
             }
             composable(Screen.Persons.route) {
                 PersonsScreen(navController = navController)
+            }
+            composable(Screen.AddFinancialAsset.route) {
+                AddFinancialAssetScreen(navController = navController)
+            }
+            composable(Screen.FinancialDetail.route) {
+                FinancialDetailScreen(navController = navController)
+            }
+            composable(
+                route = Screen.AddLot.route,
+                arguments = listOf(
+                    navArgument("assetId") { type = NavType.StringType },
+                    navArgument("lotId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) {
+                AddLotScreen(navController = navController)
             }
         }
     }

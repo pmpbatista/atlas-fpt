@@ -40,4 +40,10 @@ interface AssetDao {
 
     @Query("DELETE FROM assets WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("UPDATE assets SET currentValue = :value, currentValueUpdatedAt = :updatedAt WHERE id = :id")
+    suspend fun updateCurrentValue(id: Long, value: Double, updatedAt: Long)
+
+    @Query("UPDATE assets SET purchaseDate = :date WHERE id = :id")
+    suspend fun updatePurchaseDate(id: Long, date: java.time.LocalDate)
 }

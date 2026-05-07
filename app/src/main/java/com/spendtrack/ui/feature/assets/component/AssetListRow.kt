@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -31,7 +32,7 @@ fun AssetListRow(item: AssetListItem, onClick: () -> Unit, modifier: Modifier = 
         Icon(
             imageVector = when (item.type) {
                 AssetType.REAL_ESTATE -> Icons.Filled.HomeWork
-                AssetType.FINANCIAL -> Icons.Filled.HomeWork // placeholder until financial spec
+                AssetType.FINANCIAL -> Icons.AutoMirrored.Filled.ShowChart
             },
             contentDescription = null,
             modifier = Modifier.size(24.dp)

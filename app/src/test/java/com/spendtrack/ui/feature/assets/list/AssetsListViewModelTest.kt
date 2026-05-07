@@ -6,6 +6,7 @@ import com.spendtrack.domain.model.AssetType
 import com.spendtrack.domain.model.TotalWealth
 import com.spendtrack.domain.usecase.GetAssetsListUseCase
 import com.spendtrack.domain.usecase.GetTotalWealthUseCase
+import com.spendtrack.domain.usecase.RefreshPricesUseCase
 import com.spendtrack.util.MainDispatcherRule
 import io.mockk.every
 import io.mockk.mockk
@@ -24,6 +25,7 @@ class AssetsListViewModelTest {
 
     private val getList: GetAssetsListUseCase = mockk()
     private val getTotal: GetTotalWealthUseCase = mockk()
+    private val refreshPrices: RefreshPricesUseCase = mockk(relaxed = true)
 
     private fun item(id: Long, currency: String = "EUR") = AssetListItem(
         id = id,
@@ -38,7 +40,7 @@ class AssetsListViewModelTest {
     fun `empty list shows empty state`() = runTest {
         every { getList() } returns flowOf(emptyList())
         every { getTotal() } returns flowOf(TotalWealth(emptyMap(), 0))
-        val vm = AssetsListViewModel(getList, getTotal)
+        val vm = AssetsListViewModel(getList, getTotal, refreshPrices)
 
         vm.uiState.test {
             val s = awaitItem()
@@ -54,7 +56,7 @@ class AssetsListViewModelTest {
         val items = listOf(item(1), item(2))
         every { getList() } returns flowOf(items)
         every { getTotal() } returns flowOf(TotalWealth(mapOf("EUR" to 200_000.0), 2))
-        val vm = AssetsListViewModel(getList, getTotal)
+        val vm = AssetsListViewModel(getList, getTotal, refreshPrices)
 
         vm.uiState.test {
             // first emission may be initial empty, then loaded
@@ -74,7 +76,7 @@ class AssetsListViewModelTest {
         every { getTotal() } returns flowOf(
             TotalWealth(mapOf("EUR" to 100_000.0, "USD" to 50_000.0), 2)
         )
-        val vm = AssetsListViewModel(getList, getTotal)
+        val vm = AssetsListViewModel(getList, getTotal, refreshPrices)
 
         vm.uiState.test {
             var s = awaitItem()

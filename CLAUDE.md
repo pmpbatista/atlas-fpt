@@ -85,7 +85,7 @@ com.spendtrack/
     ├── component/                  — AmountDisplay, CategoryPickerBottomSheet, LabelChip, PersonChip, PersonPickerBottomSheet, MonthSelector, TransactionRow
     ├── feature/
     │   ├── addtransaction/         — AddTransactionScreen + ViewModel (dual-purpose: add and edit)
-    │   ├── assets/                 — Assets list + type picker + real estate detail/edit
+    │   ├── assets/                 — Assets list + type picker + real estate + financial detail/edit
     │   ├── csvimport/              — ImportScreen + ViewModel (NOTE: package is csvimport, not import — reserved keyword)
     │   ├── overview/               — OverviewScreen + ViewModel
     │   ├── persons/                — PersonsScreen + ViewModel (manage persons list)
@@ -121,6 +121,9 @@ com.spendtrack/
 | `real_estate_detail/{assetId}` | Real Estate detail (read-only) |
 | `add_real_estate` | Add Real Estate |
 | `edit_real_estate/{assetId}` | Edit Real Estate |
+| `add_financial_asset` | Add Financial Asset (with inline ticker validation) |
+| `financial_detail/{assetId}` | Financial Asset detail (stats + lot list) |
+| `add_lot/{assetId}?lotId={id}` | Add or edit a financial asset lot |
 
 ## CSV Import Format
 
@@ -283,8 +286,13 @@ fun observeTotals(): Flow<List<MyAggregate>>
 - Persons: no rename after creation (edit name is not supported)
 - Persons: not shown on `TransactionRow` in the timeline (only visible in the edit screen)
 - Persons: no filtering of timeline/overview by person
-- Financial assets (ETF / stocks / crypto) — separate spec, includes Yahoo Finance + 15-min cache
 - Linking transactions to assets (assetId FK on transactions)
+- Sales / partial position closing (FIFO/LIFO accounting, realized P&L, XIRR for accurate yield)
+- Dividends tracking (manual entry + total return)
+- FX conversion for grand-total wealth across mixed currencies
+- Charts (price history, value-over-time)
+- Background price refresh (WorkManager) — currently only lazy + force-refresh
+- Asset-search by name (not just exact ticker)
 - Live Euribor rate fetching for variable-rate real estate
 - Photos for real-estate properties
 - Instrumented tests (Room migration tests, DAO query tests, FK CASCADE verification, Compose UI tests)
