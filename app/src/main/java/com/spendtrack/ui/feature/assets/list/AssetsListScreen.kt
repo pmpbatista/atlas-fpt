@@ -3,18 +3,23 @@ package com.spendtrack.ui.feature.assets.list
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,8 +45,25 @@ fun AssetsListScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showTypePicker by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) { viewModel.refresh() }
+
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Assets") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Assets") },
+                actions = {
+                    if (state.hasFinancial) {
+                        if (state.isRefreshing) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp).padding(end = 12.dp), strokeWidth = 2.dp)
+                        } else {
+                            IconButton(onClick = { viewModel.refresh() }) {
+                                Icon(Icons.Default.Refresh, contentDescription = "Refresh prices")
+                            }
+                        }
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { showTypePicker = true }) {
                 Icon(Icons.Default.Add, contentDescription = "Add asset")
@@ -69,7 +91,8 @@ fun AssetsListScreen(
                             when (asset.type) {
                                 AssetType.REAL_ESTATE ->
                                     navController.navigate(Screen.RealEstateDetail.createRoute(asset.id))
-                                AssetType.FINANCIAL -> Unit // not navigable yet
+                                AssetType.FINANCIAL ->
+                                    navController.navigate(Screen.FinancialDetail.createRoute(asset.id))
                             }
                         }
                     )
@@ -84,7 +107,11 @@ fun AssetsListScreen(
             onRealEstate = {
                 showTypePicker = false
                 navController.navigate(Screen.AddRealEstate.route)
-            }
+            },
+            onFinancial = {
+                showTypePicker = false
+                navController.navigate(Screen.AddFinancialAsset.route)
+            },
         )
     }
 }

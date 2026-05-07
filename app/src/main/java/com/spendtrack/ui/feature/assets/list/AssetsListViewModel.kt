@@ -7,33 +7,50 @@ import com.spendtrack.domain.model.TotalWealth
 import com.spendtrack.domain.usecase.GetAssetsListUseCase
 import com.spendtrack.domain.usecase.GetTotalWealthUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AssetsListUiState(
     val items: List<AssetListItem> = emptyList(),
     val total: TotalWealth = TotalWealth(emptyMap(), 0),
+    val isRefreshing: Boolean = false,
 ) {
     val isEmpty: Boolean get() = items.isEmpty()
+    val hasFinancial: Boolean get() = items.any { it.type == com.spendtrack.domain.model.AssetType.FINANCIAL }
 }
 
 @HiltViewModel
 class AssetsListViewModel @Inject constructor(
     getList: GetAssetsListUseCase,
     getTotal: GetTotalWealthUseCase,
+    private val refreshPrices: com.spendtrack.domain.usecase.RefreshPricesUseCase,
 ) : ViewModel() {
+
+    private val refreshing = MutableStateFlow(false)
 
     val uiState: StateFlow<AssetsListUiState> = combine(
         getList(),
-        getTotal()
-    ) { items, total ->
-        AssetsListUiState(items = items, total = total)
+        getTotal(),
+        refreshing,
+    ) { items, total, isRefreshing ->
+        AssetsListUiState(items = items, total = total, isRefreshing = isRefreshing)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = AssetsListUiState()
+        initialValue = AssetsListUiState(),
     )
+
+    fun refresh() {
+        if (refreshing.value) return
+        refreshing.value = true
+        viewModelScope.launch {
+            runCatching { refreshPrices() }
+            refreshing.value = false
+        }
+    }
 }
