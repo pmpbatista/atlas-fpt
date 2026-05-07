@@ -1,0 +1,54 @@
+name: Spec from Issue
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number to process. Leave empty to sweep all open issues without a spec branch."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "spec-issue-bot"
+          git config user.email "spec-issue-bot@users.noreply.github.com"
+
+      - name: Install jq + tree
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y jq tree
+
+      - name: Run unit tests for helpers
+        run: bash .github/scripts/spec-issue/test/run_tests.sh
+
+      - name: Run spec generator
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: claude-opus-4-7
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+        run: bash .github/scripts/spec-issue/run.sh
+
+      - name: Upload raw response artifacts on parse failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec-issue-raw-responses
+          path: /tmp/raw-*.txt
+          if-no-files-found: ignore
