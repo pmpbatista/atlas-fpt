@@ -1,7 +1,9 @@
 # Spec-Issue Agent — Design Spec
 
+> **⚠️ Superseded** by [`2026-05-08-spec-issue-commands-design.md`](2026-05-08-spec-issue-commands-design.md). The GitHub-Action approach was dropped because storing `ANTHROPIC_API_KEY` as a repo secret was an unwanted attack surface. The replacement design implements the same behaviour as Claude Code slash commands run locally. This document is left in place for historical context only.
+
 **Date:** 2026-05-07
-**Status:** Draft
+**Status:** Superseded
 **Scope:** New tooling — a GitHub Action that turns open issues in this repo into draft spec PRs by generating a design doc per issue (matching the format of files under `docs/superpowers/specs/`). Plus a thin Claude Code slash command for reviewing and revising the generated specs locally.
 
 ## Goal

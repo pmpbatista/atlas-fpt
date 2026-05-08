@@ -1,5 +1,7 @@
 # Spec-Issue Agent Implementation Plan
 
+> **⚠️ Superseded.** The feature this plan implemented (a `workflow_dispatch` GitHub Action plus bash helpers) was dropped after the design pivot away from cloud-stored API keys. The replacement is in [`2026-05-08-spec-issue-commands.md`](2026-05-08-spec-issue-commands.md) (slash-commands-only). This plan is left in place for historical context; **do not execute it**.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ship a `workflow_dispatch`-triggered GitHub Action that turns open issues in this repo into draft spec PRs (one branch + spec file + draft PR per issue), plus a thin `/spec-review N` Claude Code slash command for revising generated specs locally.
