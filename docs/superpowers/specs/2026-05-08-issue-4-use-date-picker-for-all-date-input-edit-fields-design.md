@@ -30,7 +30,7 @@ All four screens — including `AddTransactionScreen` — migrate to `DatePicker
 
 ### Display format
 
-The current transaction screen formats dates as `d MMM yyyy` with `Locale("pt", "PT")` (e.g. `15 jan. 2026`). The Assets `DateRow` shows the raw ISO string (`2026-01-15`). The shared component standardises on the transaction-screen format. Locale stays Portuguese to match the rest of the app (`pt-PT` is the default; categories are seeded in Portuguese).
+The current transaction screen formats dates as `d MMM yyyy` with `Locale("pt", "PT")` (e.g. `15 jan. 2026`). The Assets `DateRow` shows the raw ISO string (`2026-01-15`). The shared component standardises on the transaction-screen format `d MMM yyyy` but resolves the locale via `Locale.getDefault()` rather than hard-coding `pt-PT`. Rationale: the app has no documented `LocalePolicy`, and hard-coding Portuguese on dates while leaving the rest of the UI on system defaults would diverge from the platform's normal locale behaviour. On a pt-PT device this is identical to today; on a non-pt-PT device the displayed month names follow the system locale.
 
 ### Tappable read-only field, not editable text
 
@@ -125,10 +125,11 @@ UTC is safe here because `LocalDate` has no timezone. Using the local zone would
 ### Display formatter
 
 ```kotlin
-private val DisplayFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale("pt", "PT"))
+private val DisplayFormatter: DateTimeFormatter
+    get() = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
 ```
 
-Defined once in `DatePickerField.kt`. Empty-state placeholder text mirrors the surrounding fields (`"Pick a date"` in the same `onSurfaceVariant` colour the transaction screen already uses for the unselected category).
+Defined as a property (not a top-level `val`) so the formatter picks up locale changes if the user switches device locale at runtime. Empty-state placeholder text mirrors the surrounding fields (`"Pick a date"` in the same `onSurfaceVariant` colour the transaction screen already uses for the unselected category).
 
 ### `allowClear`
 
@@ -177,7 +178,7 @@ The placeholder comment "A native DatePickerDialog can be added later" in `AddEd
 ### Behavioural changes user-visible
 
 - **Real estate, financial add, add lot:** dates are now picker-only. The `YYYY-MM-DD` placeholder text disappears.
-- **Transaction:** no UX change beyond the date now coming from the shared component (same dialog, same look).
+- **Transaction:** the dialog and tap-target are unchanged. The displayed date now follows the system locale rather than always being `pt-PT` — identical for pt-PT devices, localised month names on others (e.g. `15 Jan 2026` on `en-GB`).
 - **Real estate credit-end-date:** gains a "Clear" action that the free-text field didn't have (you previously had to delete the text manually). The validator already permits null when `debt_amount` is blank, so this is purely an ergonomic improvement.
 
 ## Validation & error handling
@@ -219,6 +220,6 @@ Existing suites must stay green.
 
 - **CSV import date parsing** — file-format input, not user-input.
 - **Date-range / period filters** — no screen needs them today.
-- **Localising the picker beyond the system default** — the `Locale("pt", "PT")` formatter we apply to the displayed date is the only locale-specific bit.
+- **Localising the picker beyond the system default** — the displayed-date formatter resolves locale via `Locale.getDefault()`; we don't override the picker's own locale handling.
 - **Animating the picker open / custom theming** — use the Material 3 default.
 - **An instrumented Compose UI test asserting the picker dialog is shown** — deferred to future instrumented-test infrastructure (consistent with the prior specs).
