@@ -1,6 +1,7 @@
 package com.atlasfpt.ui.feature.timeline
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,40 +11,60 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DonutLarge
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.atlasfpt.domain.model.Transaction
-import com.atlasfpt.domain.usecase.TimelineItem
+import com.atlasfpt.domain.usecase.DayGroup
+import com.atlasfpt.domain.usecase.ScheduledRollup
+import com.atlasfpt.ui.component.CashFlowBarChart
 import com.atlasfpt.ui.component.TransactionRow
 import com.atlasfpt.ui.navigation.Screen
 import com.atlasfpt.ui.theme.DateHeaderBackground
 import com.atlasfpt.ui.theme.ExpenseColor
 import com.atlasfpt.ui.theme.IncomeColor
 import com.atlasfpt.util.CurrencyFormatter
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.abs
 
 @Composable
 fun TimelineScreen(
@@ -77,12 +98,7 @@ fun TimelineScreen(
         }
     ) { padding ->
         if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
             return@Scaffold
@@ -91,76 +107,197 @@ fun TimelineScreen(
         val data = uiState.timelineData
         val symbol = uiState.settings.currencySymbol
 
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
             item {
-                CashFlowHeader(
-                    totalCashFlow = data?.totalCashFlow ?: 0.0,
-                    currencySymbol = symbol
+                CashFlowHeader(headerTotal = data.headerTotal, currencySymbol = symbol)
+            }
+            item {
+                FilterChipsRow(
+                    rangeMode = uiState.rangeMode,
+                    onRangeModeSelected = viewModel::onRangeModeSelected,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
                 )
             }
-
-            val items = data?.timelineItems ?: emptyList()
-            items(items, key = { item ->
-                when (item) {
-                    is TimelineItem.DateHeader -> "header_${item.date}"
-                    is TimelineItem.TransactionRow -> "tx_${item.transaction.id}"
+            if (data.bars.isNotEmpty()) {
+                item {
+                    CashFlowBarChart(
+                        bars = data.bars,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
                 }
-            }) { item ->
-                when (item) {
-                    is TimelineItem.DateHeader -> DateHeader(item, symbol)
-                    is TimelineItem.TransactionRow -> {
-                        val tx = item.transaction
-                        val isPending = uiState.pendingDelete?.id == tx.id
-                        if (!isPending) {
-                            TransactionRow(
-                                transaction = tx,
-                                currencySymbol = symbol,
-                                onClick = {
-                                    navController.navigate(Screen.EditTransaction.createRoute(tx.id))
-                                },
-                                onDelete = { viewModel.requestDelete(tx) }
-                            )
-                        }
+            }
+            item {
+                SpendingOverviewPill(
+                    onClick = { navController.navigate(Screen.Overview.route) },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+            data.scheduled?.let { rollup ->
+                item {
+                    ScheduledRollupRow(rollup = rollup, currencySymbol = symbol)
+                }
+            }
+            items(data.days, key = { "day_${it.date}" }) { day ->
+                DayHeader(day = day, currencySymbol = symbol)
+                day.rows.forEach { rowItem ->
+                    val isPending = uiState.pendingDelete?.id == rowItem.transaction.id
+                    if (!isPending) {
+                        TransactionRow(
+                            item = rowItem,
+                            currencySymbol = symbol,
+                            onClick = {
+                                navController.navigate(Screen.EditTransaction.createRoute(rowItem.transaction.id))
+                            },
+                            onDelete = { viewModel.requestDelete(rowItem.transaction) }
+                        )
                     }
                 }
             }
-
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
     }
 }
 
 @Composable
-private fun CashFlowHeader(totalCashFlow: Double, currencySymbol: String) {
+private fun CashFlowHeader(headerTotal: Double, currencySymbol: String) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Cash Flow",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        val color = if (totalCashFlow >= 0) IncomeColor else ExpenseColor
-        Text(
-            text = CurrencyFormatter.formatAbsolute(kotlin.math.abs(totalCashFlow), currencySymbol),
-            style = MaterialTheme.typography.headlineMedium,
-            color = color
-        )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            IconButton(
+                onClick = { /* search — future */ },
+                enabled = false,
+                modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp)
+            ) {
+                Icon(Icons.Default.Search, contentDescription = "Search")
+            }
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                val color = if (headerTotal >= 0) IncomeColor else ExpenseColor
+                Text(
+                    text = CurrencyFormatter.formatAbsolute(abs(headerTotal), currencySymbol),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = color
+                )
+                Text(
+                    text = "Cash Flow",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
 @Composable
-private fun DateHeader(item: TimelineItem.DateHeader, currencySymbol: String) {
-    val formatter = DateTimeFormatter.ofPattern("EEEE, d MMM", Locale("pt", "PT"))
-    val color = if (item.dailyTotal >= 0) IncomeColor else ExpenseColor
+private fun FilterChipsRow(
+    rangeMode: RangeMode,
+    onRangeModeSelected: (RangeMode) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var rangeMenuOpen by remember { mutableStateOf(false) }
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        AssistChip(
+            onClick = { /* wallet menu — future */ },
+            label = { Text("All Wallets") },
+            trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) }
+        )
+        Box {
+            AssistChip(
+                onClick = { rangeMenuOpen = true },
+                label = { Text(if (rangeMode == RangeMode.ByMonths) "By months" else "By weeks") },
+                trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) }
+            )
+            DropdownMenu(expanded = rangeMenuOpen, onDismissRequest = { rangeMenuOpen = false }) {
+                DropdownMenuItem(
+                    text = { Text("By months") },
+                    onClick = { onRangeModeSelected(RangeMode.ByMonths); rangeMenuOpen = false }
+                )
+                DropdownMenuItem(
+                    text = { Text("By weeks") },
+                    onClick = { onRangeModeSelected(RangeMode.ByWeeks); rangeMenuOpen = false }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpendingOverviewPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = modifier.clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.DonutLarge,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Spending Overview",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun ScheduledRollupRow(rollup: ScheduledRollup, currencySymbol: String) {
+    val color = if (rollup.net >= 0) IncomeColor else ExpenseColor
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Default.Schedule, contentDescription = "Scheduled",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text("Scheduled", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = "${rollup.count} transactions",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Text(
+            text = CurrencyFormatter.formatAbsolute(abs(rollup.net), currencySymbol),
+            style = MaterialTheme.typography.titleMedium,
+            color = color,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
+private fun DayHeader(day: DayGroup, currencySymbol: String) {
+    val color = if (day.net >= 0) IncomeColor else ExpenseColor
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -170,14 +307,23 @@ private fun DateHeader(item: TimelineItem.DateHeader, currencySymbol: String) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = item.date.format(formatter),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            text = formatDayLabel(day.date),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = CurrencyFormatter.formatAbsolute(kotlin.math.abs(item.dailyTotal), currencySymbol),
-            style = MaterialTheme.typography.labelSmall,
+            text = CurrencyFormatter.formatAbsolute(abs(day.net), currencySymbol),
+            style = MaterialTheme.typography.labelLarge,
             color = color
         )
+    }
+}
+
+private fun formatDayLabel(date: LocalDate): String {
+    val today = LocalDate.now()
+    return when (date) {
+        today -> "Today"
+        today.minusDays(1) -> "Yesterday"
+        else -> date.format(DateTimeFormatter.ofPattern("d 'de' MMMM", Locale("pt", "PT")))
     }
 }
