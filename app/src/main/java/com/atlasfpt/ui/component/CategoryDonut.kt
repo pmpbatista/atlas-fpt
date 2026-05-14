@@ -71,7 +71,8 @@ fun CategoryDonut(
 
             if (fraction < LABEL_VISIBILITY_THRESHOLD) return@forEach
 
-            val pctLabel = "%.1f%%".format(fraction * 100).removeSuffix(".0%") + (if (fraction * 100 % 1f == 0f) "%" else "")
+            val pct = fraction * 100
+            val pctLabel = if (pct == pct.toLong().toFloat()) "%.0f%%".format(pct) else "%.1f%%".format(pct)
 
             Box(
                 modifier = Modifier
