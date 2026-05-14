@@ -1,6 +1,8 @@
-# SpendTrack — Project Context
+# Atlas — Project Context
 
-Personal finance tracker Android app. Tracks expenses and income with categories, labels, recurring rules, and CSV import.
+**Atlas — Financial Planner & Tracker.** Android app for personal financial-life management: expense and income tracking, investment and real-estate tracking, and long-term goal planning.
+
+> The Kotlin package is still `com.spendtrack.*` and the Android `applicationId` is unchanged — renaming those is a future refactor. The Gradle project name (`Atlas`) and the launcher label (`Atlas`) have been updated.
 
 ## Quick Start
 

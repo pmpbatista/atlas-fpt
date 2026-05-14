@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SpendTrack"
+rootProject.name = "Atlas"
 include(":app")
