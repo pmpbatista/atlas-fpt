@@ -20,7 +20,11 @@ import com.atlasfpt.domain.model.TotalWealth
 import com.atlasfpt.util.CurrencyFormatter
 
 @Composable
-fun TotalWealthHeader(total: TotalWealth, modifier: Modifier = Modifier) {
+fun TotalWealthHeader(
+    total: TotalWealth,
+    lastRefreshAt: Long? = null,
+    modifier: Modifier = Modifier,
+) {
     if (total.isEmpty) return
     Column(modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
         Text("Net wealth", style = MaterialTheme.typography.labelMedium)
@@ -35,6 +39,14 @@ fun TotalWealthHeader(total: TotalWealth, modifier: Modifier = Modifier) {
         else
             "Across ${total.assetCount} assets"
         Text(subtitle, style = MaterialTheme.typography.bodySmall)
+
+        if (lastRefreshAt != null) {
+            Text(
+                "Prices updated ${formatRelativeAge(lastRefreshAt)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
         val typesPresent = AssetType.values().filter { total.hasType(it) }
         if (typesPresent.size >= 2) {
@@ -87,4 +99,14 @@ private fun SubtotalCard(
 private fun typeLabel(type: AssetType): String = when (type) {
     AssetType.FINANCIAL -> "Financial"
     AssetType.REAL_ESTATE -> "Real Estate"
+}
+
+private fun formatRelativeAge(thenMillis: Long): String {
+    val deltaSeconds = ((System.currentTimeMillis() - thenMillis) / 1000L).coerceAtLeast(0L)
+    return when {
+        deltaSeconds < 60 -> "just now"
+        deltaSeconds < 3600 -> "${deltaSeconds / 60}m ago"
+        deltaSeconds < 86_400 -> "${deltaSeconds / 3600}h ago"
+        else -> "${deltaSeconds / 86_400}d ago"
+    }
 }

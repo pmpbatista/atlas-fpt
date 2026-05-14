@@ -13,10 +13,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -107,6 +109,16 @@ fun SettingsScreen(
 
         HorizontalDivider()
 
+        SettingsToggleRow(
+            icon = Icons.Default.Sync,
+            title = "Background price refresh",
+            subtitle = "Refresh held-asset prices daily on Wi-Fi",
+            checked = settings.backgroundRefreshEnabled,
+            onCheckedChange = viewModel::setBackgroundRefreshEnabled,
+        )
+
+        HorizontalDivider()
+
         SettingsRow(
             icon = Icons.Default.CloudUpload,
             title = "Import from CSV",
@@ -154,5 +166,41 @@ private fun SettingsRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+}
+
+@Composable
+private fun SettingsToggleRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+        )
     }
 }

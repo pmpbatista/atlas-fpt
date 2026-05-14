@@ -94,7 +94,7 @@ fun AssetsListScreen(
             }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
-                item { TotalWealthHeader(total = state.total) }
+                item { TotalWealthHeader(total = state.total, lastRefreshAt = state.settings.lastPriceRefreshAt) }
                 items(state.items, key = { it.id }) { asset ->
                     AssetListRow(
                         item = asset,

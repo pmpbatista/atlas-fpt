@@ -2,6 +2,8 @@ package com.atlasfpt.ui.feature.assets.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.atlasfpt.data.settings.AppSettings
+import com.atlasfpt.data.settings.SettingsRepository
 import com.atlasfpt.domain.model.AssetListItem
 import com.atlasfpt.domain.model.TotalWealth
 import com.atlasfpt.domain.usecase.GetAssetsListUseCase
@@ -18,6 +20,7 @@ import javax.inject.Inject
 data class AssetsListUiState(
     val items: List<AssetListItem> = emptyList(),
     val total: TotalWealth = TotalWealth(emptyMap(), emptyMap()),
+    val settings: AppSettings = AppSettings(),
     val isRefreshing: Boolean = false,
     val refreshMessage: String? = null,
 ) {
@@ -30,20 +33,24 @@ class AssetsListViewModel @Inject constructor(
     getList: GetAssetsListUseCase,
     getTotal: GetTotalWealthUseCase,
     private val refreshPrices: com.atlasfpt.domain.usecase.RefreshPricesUseCase,
+    settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val refreshing = MutableStateFlow(false)
     private val refreshMessage = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<AssetsListUiState> = combine(
-        getList(),
-        getTotal(),
-        refreshing,
-        refreshMessage,
-    ) { items, total, isRefreshing, message ->
+        combine(getList(), getTotal(), settingsRepository.settings) { items, total, settings ->
+            Triple(items, total, settings)
+        },
+        combine(refreshing, refreshMessage) { isRefreshing, message ->
+            Pair(isRefreshing, message)
+        },
+    ) { (items, total, settings), (isRefreshing, message) ->
         AssetsListUiState(
             items = items,
             total = total,
+            settings = settings,
             isRefreshing = isRefreshing,
             refreshMessage = message,
         )
