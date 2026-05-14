@@ -37,4 +37,5 @@ data class RealEstateDetailsEntity(
     val parish: String,
     val sizeM2: Double,
     val energyRating: EnergyRating,
+    val photoUri: String? = null,
 )

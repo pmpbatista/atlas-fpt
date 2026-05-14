@@ -7,6 +7,7 @@ data class AssetListItem(
     val currentValue: Double,
     val currencyCode: String,
     val outstandingDebt: Double?,
+    val photoUri: String? = null,
 ) {
     val equity: Double get() = currentValue - (outstandingDebt ?: 0.0)
 }

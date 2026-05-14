@@ -19,7 +19,8 @@ interface AssetDao {
                a.name AS name,
                a.currentValue AS currentValue,
                a.currencyCode AS currencyCode,
-               r.outstandingDebt AS outstandingDebt
+               r.outstandingDebt AS outstandingDebt,
+               r.photoUri AS photoUri
         FROM assets a
         LEFT JOIN real_estate_details r ON r.assetId = a.id
         ORDER BY LOWER(a.name) ASC
