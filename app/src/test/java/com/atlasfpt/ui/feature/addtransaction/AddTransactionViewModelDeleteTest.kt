@@ -115,4 +115,27 @@ class AddTransactionViewModelDeleteTest {
         }
         coVerify { deleteTransaction(fakeTransaction) }
     }
+
+    @Test
+    fun `canDelete is false before load and true after load`() = runTest {
+        viewModel.uiState.test {
+            assertFalse(awaitItem().canDelete)
+            viewModel.loadTransaction(42L)
+            advanceUntilIdle()
+            assertTrue(awaitItem().canDelete)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `delete before load is a no-op`() = runTest {
+        viewModel.uiState.test {
+            awaitItem()
+            viewModel.delete()
+            advanceUntilIdle()
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+        coVerify(exactly = 0) { deleteTransaction(any()) }
+    }
 }

@@ -104,7 +104,10 @@ fun AddTransactionScreen(
                 },
                 actions = {
                     if (isEditMode) {
-                        IconButton(onClick = viewModel::onDeleteRequested) {
+                        IconButton(
+                            onClick = viewModel::onDeleteRequested,
+                            enabled = uiState.canDelete
+                        ) {
                             Icon(Icons.Default.DeleteOutline, contentDescription = "Delete transaction")
                         }
                     }
