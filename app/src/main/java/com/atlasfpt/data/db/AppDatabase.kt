@@ -43,7 +43,7 @@ import com.atlasfpt.domain.model.CategoryType
         FinancialLotEntity::class,
     ],
     version = 4,
-    exportSchema = false
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
