@@ -18,7 +18,8 @@ data class PersonsUiState(
     val persons: List<Person> = emptyList(),
     val showAddDialog: Boolean = false,
     val deleteTarget: Person? = null,
-    val deleteTransactionCount: Int = 0
+    val deleteTransactionCount: Int = 0,
+    val renameTarget: Person? = null
 )
 
 @HiltViewModel
@@ -67,6 +68,27 @@ class PersonsViewModel @Inject constructor(
         _form.update { it.copy(deleteTarget = null, deleteTransactionCount = 0) }
         viewModelScope.launch {
             personRepository.delete(target)
+        }
+    }
+
+    fun onRequestRename(person: Person) {
+        _form.update { it.copy(renameTarget = person) }
+    }
+
+    fun onDismissRename() {
+        _form.update { it.copy(renameTarget = null) }
+    }
+
+    fun onConfirmRename(newName: String) {
+        val target = _form.value.renameTarget ?: return
+        val trimmed = newName.trim()
+        if (trimmed.isBlank() || trimmed == target.name) {
+            _form.update { it.copy(renameTarget = null) }
+            return
+        }
+        _form.update { it.copy(renameTarget = null) }
+        viewModelScope.launch {
+            personRepository.rename(target, trimmed)
         }
     }
 }

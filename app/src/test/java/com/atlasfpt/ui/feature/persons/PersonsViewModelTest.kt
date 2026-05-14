@@ -135,4 +135,58 @@ class PersonsViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    @Test
+    fun `onRequestRename sets renameTarget`() = runTest {
+        viewModel.onRequestRename(alice)
+        viewModel.uiState.test {
+            assertEquals(alice, awaitItem().renameTarget)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `onConfirmRename calls repository with trimmed name and clears target`() = runTest {
+        viewModel.onRequestRename(alice)
+        viewModel.onConfirmRename("  Alicia  ")
+        advanceUntilIdle()
+
+        coVerify { personRepository.rename(alice, "Alicia") }
+        viewModel.uiState.test {
+            assertNull(awaitItem().renameTarget)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `onConfirmRename ignores unchanged name`() = runTest {
+        viewModel.onRequestRename(alice)
+        viewModel.onConfirmRename("Alice")
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { personRepository.rename(any(), any()) }
+        viewModel.uiState.test {
+            assertNull(awaitItem().renameTarget)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `onConfirmRename ignores blank name`() = runTest {
+        viewModel.onRequestRename(alice)
+        viewModel.onConfirmRename("   ")
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { personRepository.rename(any(), any()) }
+    }
+
+    @Test
+    fun `onDismissRename clears renameTarget`() = runTest {
+        viewModel.onRequestRename(alice)
+        viewModel.onDismissRename()
+        viewModel.uiState.test {
+            assertNull(awaitItem().renameTarget)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }

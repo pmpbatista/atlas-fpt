@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.atlasfpt.data.db.entity.PersonEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -16,6 +17,9 @@ interface PersonDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(person: PersonEntity): Long
+
+    @Update
+    suspend fun update(person: PersonEntity)
 
     @Delete
     suspend fun delete(person: PersonEntity)

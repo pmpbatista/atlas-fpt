@@ -98,6 +98,15 @@ fun TransactionRow(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+                if (transaction.persons.isNotEmpty()) {
+                    Text(
+                        text = "with " + transaction.persons.joinToString(", ") { it.name },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
             Text(
                 text = CurrencyFormatter.format(transaction.amount, currencySymbol, transaction.type),
