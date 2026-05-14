@@ -1,5 +1,6 @@
 package com.atlasfpt.ui.feature.addtransaction
 
+import com.atlasfpt.data.repository.AssetRepository
 import com.atlasfpt.data.repository.CategoryRepository
 import com.atlasfpt.data.repository.PersonRepository
 import com.atlasfpt.data.repository.TransactionRepository
@@ -40,6 +41,7 @@ class AddTransactionViewModelRecurringRuleIdTest {
     private val settingsRepository: SettingsRepository = mockk()
     private val deleteTransaction: DeleteTransactionUseCase = mockk(relaxed = true)
     private val personRepository: PersonRepository = mockk()
+    private val assetRepository: AssetRepository = mockk()
 
     private lateinit var viewModel: AddTransactionViewModel
 
@@ -52,13 +54,15 @@ class AddTransactionViewModelRecurringRuleIdTest {
         every { categoryRepository.observeAll() } returns flowOf(emptyList())
         every { settingsRepository.settings } returns MutableStateFlow(AppSettings())
         every { personRepository.observeAll() } returns flowOf(emptyList())
+        every { assetRepository.observeAssetList() } returns flowOf(emptyList())
         viewModel = AddTransactionViewModel(
             saveTransaction,
             categoryRepository,
             transactionRepository,
             settingsRepository,
             deleteTransaction,
-            personRepository
+            personRepository,
+            assetRepository
         )
     }
 

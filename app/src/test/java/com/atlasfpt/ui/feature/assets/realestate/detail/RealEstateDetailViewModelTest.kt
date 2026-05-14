@@ -2,6 +2,9 @@ package com.atlasfpt.ui.feature.assets.realestate.detail
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import com.atlasfpt.data.repository.TransactionRepository
+import com.atlasfpt.data.settings.AppSettings
+import com.atlasfpt.data.settings.SettingsRepository
 import com.atlasfpt.domain.model.EnergyRating
 import com.atlasfpt.domain.model.InterestType
 import com.atlasfpt.domain.model.RealEstateAsset
@@ -9,7 +12,10 @@ import com.atlasfpt.domain.model.ReferenceRate
 import com.atlasfpt.domain.usecase.GetRealEstateUseCase
 import com.atlasfpt.util.MainDispatcherRule
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -27,6 +33,12 @@ class RealEstateDetailViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val getUseCase: GetRealEstateUseCase = mockk()
+    private val transactionRepository: TransactionRepository = mockk {
+        every { observeByAssetId(any()) } returns flowOf(emptyList())
+    }
+    private val settingsRepository: SettingsRepository = mockk {
+        every { settings } returns MutableStateFlow(AppSettings())
+    }
 
     private fun asset(
         id: Long = 1L,
@@ -63,7 +75,9 @@ class RealEstateDetailViewModelTest {
 
     private fun viewModel(savedId: Long?) = RealEstateDetailViewModel(
         savedStateHandle = SavedStateHandle(mapOf("assetId" to savedId?.toString())),
-        getRealEstate = getUseCase
+        getRealEstate = getUseCase,
+        transactionRepository = transactionRepository,
+        settingsRepository = settingsRepository,
     )
 
     @Test

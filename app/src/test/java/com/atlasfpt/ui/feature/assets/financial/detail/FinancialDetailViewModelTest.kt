@@ -2,6 +2,9 @@ package com.atlasfpt.ui.feature.assets.financial.detail
 
 import androidx.lifecycle.SavedStateHandle
 import com.atlasfpt.data.repository.PriceRepository
+import com.atlasfpt.data.repository.TransactionRepository
+import com.atlasfpt.data.settings.AppSettings
+import com.atlasfpt.data.settings.SettingsRepository
 import com.atlasfpt.domain.model.FinancialAsset
 import com.atlasfpt.domain.model.FinancialLot
 import com.atlasfpt.domain.usecase.DeleteAssetUseCase
@@ -10,7 +13,10 @@ import com.atlasfpt.domain.usecase.GetFinancialAssetUseCase
 import com.atlasfpt.util.MainDispatcherRule
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -30,6 +36,12 @@ class FinancialDetailViewModelTest {
     private val deleteAsset: DeleteAssetUseCase = mockk(relaxed = true)
     private val deleteLot: DeleteLotUseCase = mockk(relaxed = true)
     private val priceRepo: PriceRepository = mockk(relaxed = true)
+    private val transactionRepository: TransactionRepository = mockk {
+        every { observeByAssetId(any()) } returns flowOf(emptyList())
+    }
+    private val settingsRepository: SettingsRepository = mockk {
+        every { settings } returns MutableStateFlow(AppSettings())
+    }
 
     private fun asset(
         id: Long = 1L,
@@ -50,6 +62,8 @@ class FinancialDetailViewModelTest {
         deleteAssetUseCase = deleteAsset,
         deleteLotUseCase = deleteLot,
         priceRepository = priceRepo,
+        transactionRepository = transactionRepository,
+        settingsRepository = settingsRepository,
     )
 
     @Test fun `loads asset and computes equity`() = runTest {

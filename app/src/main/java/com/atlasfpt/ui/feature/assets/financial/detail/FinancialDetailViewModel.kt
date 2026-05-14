@@ -4,7 +4,10 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.atlasfpt.data.repository.PriceRepository
+import com.atlasfpt.data.repository.TransactionRepository
+import com.atlasfpt.data.settings.SettingsRepository
 import com.atlasfpt.domain.model.FinancialAsset
+import com.atlasfpt.domain.model.Transaction
 import com.atlasfpt.domain.usecase.DeleteAssetUseCase
 import com.atlasfpt.domain.usecase.DeleteLotUseCase
 import com.atlasfpt.domain.usecase.GetFinancialAssetUseCase
@@ -22,6 +25,8 @@ data class FinancialDetailUiState(
     val isRefreshing: Boolean = false,
     val isDeleted: Boolean = false,
     val errorMessage: String? = null,
+    val linkedTransactions: List<Transaction> = emptyList(),
+    val currencySymbol: String = "€",
 )
 
 @HiltViewModel
@@ -31,6 +36,8 @@ class FinancialDetailViewModel @Inject constructor(
     private val deleteAssetUseCase: DeleteAssetUseCase,
     private val deleteLotUseCase: DeleteLotUseCase,
     private val priceRepository: PriceRepository,
+    private val transactionRepository: TransactionRepository,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(FinancialDetailUiState())
@@ -43,6 +50,16 @@ class FinancialDetailViewModel @Inject constructor(
             _state.update { it.copy(loadError = true) }
         } else {
             loadAsset()
+            viewModelScope.launch {
+                transactionRepository.observeByAssetId(assetId).collect { txs ->
+                    _state.update { it.copy(linkedTransactions = txs) }
+                }
+            }
+            viewModelScope.launch {
+                settingsRepository.settings.collect { s ->
+                    _state.update { it.copy(currencySymbol = s.currencySymbol) }
+                }
+            }
         }
     }
 

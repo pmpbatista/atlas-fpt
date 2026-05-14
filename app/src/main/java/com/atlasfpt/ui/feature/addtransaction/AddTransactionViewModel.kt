@@ -2,11 +2,13 @@ package com.atlasfpt.ui.feature.addtransaction
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.atlasfpt.data.repository.AssetRepository
 import com.atlasfpt.data.repository.CategoryRepository
 import com.atlasfpt.data.repository.PersonRepository
 import com.atlasfpt.data.repository.TransactionRepository
 import com.atlasfpt.data.settings.AppSettings
 import com.atlasfpt.data.settings.SettingsRepository
+import com.atlasfpt.domain.model.AssetListItem
 import com.atlasfpt.domain.model.Category
 import com.atlasfpt.domain.model.Label
 import com.atlasfpt.domain.model.Person
@@ -34,13 +36,16 @@ data class AddTransactionUiState(
     val photoUri: String? = null,
     val labels: List<Label> = emptyList(),
     val persons: List<Person> = emptyList(),
+    val selectedAsset: AssetListItem? = null,
     val availableCategories: List<Category> = emptyList(),
     val availablePersons: List<Person> = emptyList(),
+    val availableAssets: List<AssetListItem> = emptyList(),
     val settings: AppSettings = AppSettings(),
     val isSaved: Boolean = false,
     val isLoading: Boolean = false,
     val showCategoryPicker: Boolean = false,
     val showPersonPicker: Boolean = false,
+    val showAssetPicker: Boolean = false,
     val showDeleteConfirmation: Boolean = false,
     val isDeleted: Boolean = false
 )
@@ -52,7 +57,8 @@ class AddTransactionViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val settingsRepository: SettingsRepository,
     private val deleteTransaction: DeleteTransactionUseCase,
-    private val personRepository: PersonRepository
+    private val personRepository: PersonRepository,
+    private val assetRepository: AssetRepository
 ) : ViewModel() {
 
     private val _form = MutableStateFlow(AddTransactionUiState())
@@ -63,9 +69,16 @@ class AddTransactionViewModel @Inject constructor(
         _form,
         categoryRepository.observeAll(),
         settingsRepository.settings,
-        personRepository.observeAll()
-    ) { form, categories, settings, persons ->
-        form.copy(availableCategories = categories, settings = settings, availablePersons = persons)
+        personRepository.observeAll(),
+        assetRepository.observeAssetList()
+    ) { form, categories, settings, persons, assets ->
+        form.copy(
+            availableCategories = categories,
+            settings = settings,
+            availablePersons = persons,
+            availableAssets = assets,
+            selectedAsset = form.selectedAsset ?: assets.firstOrNull { it.id == loadedTransaction?.assetId }
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -142,6 +155,12 @@ class AddTransactionViewModel @Inject constructor(
     fun onShowPersonPicker() { _form.update { it.copy(showPersonPicker = true) } }
     fun onDismissPersonPicker() { _form.update { it.copy(showPersonPicker = false) } }
 
+    fun onShowAssetPicker() { _form.update { it.copy(showAssetPicker = true) } }
+    fun onDismissAssetPicker() { _form.update { it.copy(showAssetPicker = false) } }
+    fun onAssetSelected(asset: AssetListItem?) {
+        _form.update { it.copy(selectedAsset = asset, showAssetPicker = false) }
+    }
+
     fun save() {
         val state = _form.value
         val category = state.selectedCategory ?: return
@@ -159,7 +178,8 @@ class AddTransactionViewModel @Inject constructor(
                 labels = state.labels,
                 persons = state.persons,
                 recurringRuleId = loadedTransaction?.recurringRuleId,
-                isScheduled = false
+                isScheduled = false,
+                assetId = state.selectedAsset?.id
             )
             saveTransaction(tx)
             _form.update { it.copy(isLoading = false, isSaved = true) }

@@ -28,6 +28,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.atlasfpt.domain.model.RealEstateAsset
+import com.atlasfpt.ui.component.LinkedTransactionsSection
 import com.atlasfpt.ui.navigation.Screen
 import com.atlasfpt.util.CurrencyFormatter
 import com.atlasfpt.util.describeInterest
@@ -98,6 +99,16 @@ fun RealEstateDetailScreen(
                     item { Spacer(Modifier.height(16.dp)); PropertyDetails(asset) }
                     asset.notes?.takeIf { it.isNotBlank() }?.let { notes ->
                         item { Spacer(Modifier.height(16.dp)); NotesSection(notes) }
+                    }
+                    item {
+                        Spacer(Modifier.height(16.dp))
+                        LinkedTransactionsSection(
+                            transactions = state.linkedTransactions,
+                            currencySymbol = state.currencySymbol,
+                            onRowClick = { id ->
+                                navController.navigate("edit_transaction/$id")
+                            },
+                        )
                     }
                 }
             }

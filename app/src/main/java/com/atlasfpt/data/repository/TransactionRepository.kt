@@ -30,6 +30,9 @@ class TransactionRepository @Inject constructor(private val dao: TransactionDao)
     fun observeScheduled(): Flow<List<Transaction>> =
         dao.observeScheduled().map { list -> list.map { it.toDomain() } }
 
+    fun observeByAssetId(assetId: Long): Flow<List<Transaction>> =
+        dao.observeByAssetId(assetId).map { list -> list.map { it.toDomain() } }
+
     fun observeDailySummaries(from: LocalDate, to: LocalDate): Flow<List<DailySummary>> =
         dao.observeDailySummaries(from, to)
 

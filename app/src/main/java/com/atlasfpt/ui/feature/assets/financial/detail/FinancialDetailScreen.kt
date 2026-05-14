@@ -23,6 +23,7 @@ import androidx.navigation.NavController
 import com.atlasfpt.domain.model.FinancialAsset
 import com.atlasfpt.domain.model.FinancialLot
 import com.atlasfpt.domain.usecase.calculateAvgYearlyYield
+import com.atlasfpt.ui.component.LinkedTransactionsSection
 import com.atlasfpt.ui.navigation.Screen
 import com.atlasfpt.util.CurrencyFormatter
 import com.atlasfpt.util.formatPercent
@@ -133,6 +134,16 @@ fun FinancialDetailScreen(
                     }
                     asset.notes?.takeIf { it.isNotBlank() }?.let { notes ->
                         item { Spacer(Modifier.height(8.dp)); Text("Notes", style = MaterialTheme.typography.titleSmall); Text(notes) }
+                    }
+                    item {
+                        Spacer(Modifier.height(8.dp))
+                        LinkedTransactionsSection(
+                            transactions = state.linkedTransactions,
+                            currencySymbol = state.currencySymbol,
+                            onRowClick = { id ->
+                                navController.navigate("edit_transaction/$id")
+                            },
+                        )
                     }
                 }
             }

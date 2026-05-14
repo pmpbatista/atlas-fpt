@@ -21,9 +21,15 @@ import java.time.LocalDate
             parentColumns = ["id"],
             childColumns = ["recurringRuleId"],
             onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = AssetEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["assetId"],
+            onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index("categoryId"), Index("date"), Index("recurringRuleId")]
+    indices = [Index("categoryId"), Index("date"), Index("recurringRuleId"), Index("assetId")]
 )
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -34,5 +40,6 @@ data class TransactionEntity(
     val note: String? = null,
     val photoUri: String? = null,
     val recurringRuleId: Long? = null,
-    val isScheduled: Boolean = false
+    val isScheduled: Boolean = false,
+    val assetId: Long? = null
 )

@@ -30,6 +30,10 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE isScheduled = 1 ORDER BY date ASC")
     fun observeScheduled(): Flow<List<TransactionWithDetails>>
 
+    @Transaction
+    @Query("SELECT * FROM transactions WHERE isScheduled = 0 AND assetId = :assetId ORDER BY date DESC")
+    fun observeByAssetId(assetId: Long): Flow<List<TransactionWithDetails>>
+
     @Query("""
         SELECT date,
             SUM(CASE WHEN type='EXPENSE' THEN amount ELSE 0 END) as totalExpense,

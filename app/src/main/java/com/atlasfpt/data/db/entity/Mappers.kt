@@ -22,7 +22,8 @@ fun TransactionWithDetails.toDomain(): Transaction = Transaction(
     labels = labels.map { it.toDomain() },
     persons = persons.map { it.toDomain() },
     recurringRuleId = transaction.recurringRuleId,
-    isScheduled = transaction.isScheduled
+    isScheduled = transaction.isScheduled,
+    assetId = transaction.assetId
 )
 
 fun CategoryEntity.toDomain(): Category = Category(
@@ -76,7 +77,8 @@ fun Transaction.toEntity(): TransactionEntity = TransactionEntity(
     note = note,
     photoUri = photoUri,
     recurringRuleId = recurringRuleId,
-    isScheduled = isScheduled
+    isScheduled = isScheduled,
+    assetId = assetId
 )
 
 fun AssetWithRealEstate.toRealEstateDomain(): RealEstateAsset {
