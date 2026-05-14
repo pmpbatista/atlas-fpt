@@ -37,7 +37,7 @@ fun TotalWealthHeader(total: TotalWealth, modifier: Modifier = Modifier) {
         Text(subtitle, style = MaterialTheme.typography.bodySmall)
 
         val typesPresent = AssetType.values().filter { total.hasType(it) }
-        if (typesPresent.size >= 1) {
+        if (typesPresent.size >= 2) {
             Spacer(modifier = Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
