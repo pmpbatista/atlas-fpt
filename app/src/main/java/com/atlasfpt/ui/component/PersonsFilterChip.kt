@@ -1,5 +1,6 @@
 package com.atlasfpt.ui.component
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,8 +10,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.People
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -42,7 +43,8 @@ fun PersonsFilterChip(
         else -> "${selectedIds.size} people"
     }
 
-    AssistChip(
+    FilterChip(
+        selected = selectedIds.isNotEmpty(),
         onClick = { sheetOpen = true },
         label = { Text(label) },
         leadingIcon = {
@@ -88,19 +90,12 @@ fun PersonsFilterChip(
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp),
+                            .clickable {
+                                val next = if (isChecked) selectedIds - person.id else selectedIds + person.id
+                                onSelectionChanged(next)
+                            }
+                            .padding(horizontal = 8.dp)
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(start = 16.dp),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                    ) {
-                        TextButton(onClick = {
-                            val next = if (isChecked) selectedIds - person.id else selectedIds + person.id
-                            onSelectionChanged(next)
-                        }) {
-                            Text(if (isChecked) "Remove" else "Add")
-                        }
-                    }
                 }
             }
 
@@ -110,6 +105,7 @@ fun PersonsFilterChip(
             ) {
                 TextButton(onClick = {
                     onSelectionChanged(emptySet())
+                    sheetOpen = false
                 }) {
                     Text("Clear filter")
                 }
