@@ -6,6 +6,7 @@
 /build
 **/build/
 .claude/settings.local.json
+SESSION_STATUS.md
 /captures
 .externalNativeBuild
 .cxx
