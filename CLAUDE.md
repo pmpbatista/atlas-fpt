@@ -2,8 +2,6 @@
 
 **Atlas — Financial Planner & Tracker.** Android app for personal financial-life management: expense and income tracking, investment and real-estate tracking, and long-term goal planning.
 
-> The Kotlin package is still `com.spendtrack.*` and the Android `applicationId` is unchanged — renaming those is a future refactor. The Gradle project name (`Atlas`) and the launcher label (`Atlas`) have been updated.
-
 ## Quick Start
 
 ```bash
@@ -15,7 +13,7 @@
 
 # Install and launch on connected emulator
 /Users/pedrobatista/Library/Android/sdk/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk
-/Users/pedrobatista/Library/Android/sdk/platform-tools/adb shell am start -n com.spendtrack/.MainActivity
+/Users/pedrobatista/Library/Android/sdk/platform-tools/adb shell am start -n com.atlasfpt/.MainActivity
 ```
 
 ## Environment
@@ -54,9 +52,9 @@ di/          → Hilt modules
 ## Package Structure
 
 ```
-com.spendtrack/
+com.atlasfpt/
 ├── MainActivity.kt
-├── SpendTrackApplication.kt
+├── AtlasApplication.kt
 ├── data/
 │   ├── db/
 │   │   ├── AppDatabase.kt          — Room DB, version 2, seeds Portuguese categories on first create
@@ -100,11 +98,11 @@ com.spendtrack/
 
 ## Key Design Decisions
 
-- **`csvimport` package name:** The import feature package is `com.spendtrack.ui.feature.csvimport` (NOT `import`) — `import` is a reserved keyword in Kotlin/Java and causes KSP/Hilt code generation to crash.
+- **`csvimport` package name:** The import feature package is `com.atlasfpt.ui.feature.csvimport` (NOT `import`) — `import` is a reserved keyword in Kotlin/Java and causes KSP/Hilt code generation to crash.
 - **Edit vs Add screen:** `AddTransactionScreen` serves both purposes. `transactionId == null || transactionId == 0L` means add mode; otherwise edit mode. The `isEditMode` local val captures this.
 - **Delete flow:** Trash icon in TopAppBar (edit mode only) → confirmation `AlertDialog` → `DeleteTransactionUseCase` → `isDeleted = true` → `LaunchedEffect` pops back stack. Mirrors the `isSaved` save pattern.
 - **Category seeding:** Default Portuguese expense/income categories are inserted via `SeedCallback` when the Room DB is first created.
-- **WorkManager init:** Default WorkManager initialiser is disabled in the manifest; custom init is done via `Configuration.Provider` in `SpendTrackApplication`.
+- **WorkManager init:** Default WorkManager initialiser is disabled in the manifest; custom init is done via `Configuration.Provider` in `AtlasApplication`.
 - **Persons many-to-many:** Mirrors the Labels pattern exactly — `persons` table + `transaction_person_cross_ref` cross-ref table with composite PK and `ON DELETE CASCADE` on both FKs. `TransactionWithDetails` fetches persons via `@Relation(Junction(TransactionPersonCrossRef::class))`. `TransactionRepository.save()` does delete-then-re-insert for cross-refs, same as labels. DB version 2 with `MIGRATION_1_2`.
 - **PersonRepository.save vs insert:** The repository exposes `save()` (consistent with `LabelRepository`); internally it delegates to `PersonDao.insert()` with `OnConflictStrategy.IGNORE`.
 
@@ -141,7 +139,7 @@ date,amount,type,category,note
 
 ## Testing
 
-Unit tests live in `app/src/test/java/com/spendtrack/`. Test infrastructure:
+Unit tests live in `app/src/test/java/com/atlasfpt/`. Test infrastructure:
 
 - `util/MainDispatcherRule.kt` — JUnit4 rule that sets `Dispatchers.Main` to `UnconfinedTestDispatcher`
 - `ui/feature/addtransaction/AddTransactionViewModelDeleteTest.kt` — 3 tests for delete functions using MockK + Turbine
@@ -301,4 +299,4 @@ fun observeTotals(): Flow<List<MyAggregate>>
 
 ## Repository
 
-`https://github.com/pmpbatista/spendtrack.git` — single `main` branch
+`https://github.com/pmpbatista/atlas-fpt.git` — single `main` branch

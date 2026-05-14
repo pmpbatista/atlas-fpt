@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.spendtrack"
+    namespace = "com.atlasfpt"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.spendtrack"
+        applicationId = "com.atlasfpt"
         minSdk = 26
         targetSdk = 36
         versionCode = 2
