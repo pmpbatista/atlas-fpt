@@ -1,7 +1,10 @@
 package com.atlasfpt.di
 
+import com.atlasfpt.data.network.EcbDataApi
+import com.atlasfpt.data.network.EuriborSource
 import com.atlasfpt.data.network.PriceSource
 import com.atlasfpt.data.network.YahooFinanceApi
+import com.atlasfpt.data.network.impl.EcbEuriborSource
 import com.atlasfpt.data.network.impl.YahooPriceSource
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Binds
@@ -14,6 +17,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -22,6 +26,7 @@ object NetworkModule {
 
     private const val USER_AGENT = "Mozilla/5.0 (compatible; Atlas/1.0)"
     private const val YAHOO_BASE_URL = "https://query1.finance.yahoo.com/"
+    private const val ECB_BASE_URL = "https://data-api.ecb.europa.eu/"
 
     @Provides
     @Singleton
@@ -46,7 +51,8 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(client: OkHttpClient, json: Json): Retrofit = Retrofit.Builder()
+    @Named("yahoo")
+    fun provideYahooRetrofit(client: OkHttpClient, json: Json): Retrofit = Retrofit.Builder()
         .baseUrl(YAHOO_BASE_URL)
         .client(client)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
@@ -54,8 +60,22 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideYahooFinanceApi(retrofit: Retrofit): YahooFinanceApi =
+    @Named("ecb")
+    fun provideEcbRetrofit(client: OkHttpClient, json: Json): Retrofit = Retrofit.Builder()
+        .baseUrl(ECB_BASE_URL)
+        .client(client)
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build()
+
+    @Provides
+    @Singleton
+    fun provideYahooFinanceApi(@Named("yahoo") retrofit: Retrofit): YahooFinanceApi =
         retrofit.create(YahooFinanceApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideEcbDataApi(@Named("ecb") retrofit: Retrofit): EcbDataApi =
+        retrofit.create(EcbDataApi::class.java)
 }
 
 @Module
@@ -64,4 +84,8 @@ abstract class NetworkBindings {
     @Binds
     @Singleton
     abstract fun bindPriceSource(impl: YahooPriceSource): PriceSource
+
+    @Binds
+    @Singleton
+    abstract fun bindEuriborSource(impl: EcbEuriborSource): EuriborSource
 }
