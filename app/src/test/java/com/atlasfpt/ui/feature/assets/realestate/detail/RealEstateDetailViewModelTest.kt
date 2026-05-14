@@ -2,6 +2,8 @@ package com.atlasfpt.ui.feature.assets.realestate.detail
 
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
+import com.atlasfpt.data.repository.EuriborCache
+import com.atlasfpt.data.repository.EuriborRepository
 import com.atlasfpt.data.repository.TransactionRepository
 import com.atlasfpt.data.settings.AppSettings
 import com.atlasfpt.data.settings.SettingsRepository
@@ -10,6 +12,7 @@ import com.atlasfpt.domain.model.InterestType
 import com.atlasfpt.domain.model.RealEstateAsset
 import com.atlasfpt.domain.model.ReferenceRate
 import com.atlasfpt.domain.usecase.GetRealEstateUseCase
+import com.atlasfpt.domain.usecase.SetEuriborManualUseCase
 import com.atlasfpt.util.MainDispatcherRule
 import io.mockk.coEvery
 import io.mockk.every
@@ -39,6 +42,10 @@ class RealEstateDetailViewModelTest {
     private val settingsRepository: SettingsRepository = mockk {
         every { settings } returns MutableStateFlow(AppSettings())
     }
+    private val euriborRepository: EuriborRepository = mockk {
+        every { cache } returns MutableStateFlow(EuriborCache())
+    }
+    private val setEuriborManual: SetEuriborManualUseCase = mockk(relaxed = true)
 
     private fun asset(
         id: Long = 1L,
@@ -78,6 +85,8 @@ class RealEstateDetailViewModelTest {
         getRealEstate = getUseCase,
         transactionRepository = transactionRepository,
         settingsRepository = settingsRepository,
+        euriborRepository = euriborRepository,
+        setEuriborManual = setEuriborManual,
     )
 
     @Test
