@@ -63,7 +63,8 @@ class RealEstateDetailViewModel @Inject constructor(
                 if (asset == null) {
                     _state.update { it.copy(loadError = true) }
                 } else {
-                    _state.update { it.copy(asset = asset) }
+                    val cached = asset.referenceRate?.let { euriborRepository.cache.value.get(it) }
+                    _state.update { it.copy(asset = asset, euribor = cached) }
                 }
             }
             viewModelScope.launch {
