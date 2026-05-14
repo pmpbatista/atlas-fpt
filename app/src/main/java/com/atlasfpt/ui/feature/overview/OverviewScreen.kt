@@ -1,40 +1,41 @@
 package com.atlasfpt.ui.feature.overview
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.atlasfpt.domain.model.TransactionType
 import com.atlasfpt.domain.usecase.CategoryBreakdown
+import com.atlasfpt.ui.component.CategoryDonut
 import com.atlasfpt.ui.component.MonthSelector
 import com.atlasfpt.ui.theme.ExpenseColor
 import com.atlasfpt.ui.theme.IncomeColor
@@ -44,9 +45,18 @@ import com.atlasfpt.util.CurrencyFormatter
 fun OverviewScreen(viewModel: OverviewViewModel = hiltViewModel()) {
     val screenState by viewModel.uiState.collectAsState()
     val state = screenState.overviewUiState
-    var selectedTab by remember { mutableIntStateOf(0) }
+    val isExpense = screenState.selectedSide == TransactionType.EXPENSE
+    val slices = if (isExpense) state.expenseBreakdown else state.incomeBreakdown
+    val accent = if (isExpense) ExpenseColor else IncomeColor
 
     Column(modifier = Modifier.fillMaxSize()) {
+        Text(
+            text = "Categories",
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
+        )
+
         MonthSelector(
             yearMonth = screenState.selectedMonth,
             onPrevious = viewModel::previousMonth,
@@ -56,6 +66,17 @@ fun OverviewScreen(viewModel: OverviewViewModel = hiltViewModel()) {
                 .padding(horizontal = 8.dp, vertical = 4.dp)
         )
 
+        SegmentedTotalsRow(
+            selectedSide = screenState.selectedSide,
+            expenseTotal = state.totalExpense,
+            incomeTotal = state.totalIncome,
+            currencySymbol = screenState.currencySymbol,
+            onSideSelected = viewModel::onSideSelected,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+
         if (state.isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -63,66 +84,25 @@ fun OverviewScreen(viewModel: OverviewViewModel = hiltViewModel()) {
             return@Column
         }
 
-        TabRow(selectedTabIndex = selectedTab) {
-            Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
-                Text(
-                    "Expenses",
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    color = if (selectedTab == 0) ExpenseColor else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
-                Text(
-                    "Income",
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    color = if (selectedTab == 1) IncomeColor else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        val breakdown = if (selectedTab == 0) state.expenseBreakdown else state.incomeBreakdown
-        val total = if (selectedTab == 0) state.totalExpense else state.totalIncome
-        val accentColor = if (selectedTab == 0) ExpenseColor else IncomeColor
-
-        if (breakdown.isEmpty()) {
+        if (slices.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    "No transactions this month",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text("No transactions this month", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             return@Column
         }
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             item {
-                DonutChart(
-                    breakdown = breakdown,
-                    accentColor = accentColor,
+                CategoryDonut(
+                    slices = slices,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp)
-                        .padding(16.dp)
+                        .aspectRatio(1f)
+                        .padding(24.dp)
                 )
             }
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Total", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        CurrencyFormatter.formatAbsolute(total, screenState.currencySymbol),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = accentColor
-                    )
-                }
-                HorizontalDivider()
-            }
-            items(breakdown) { item ->
-                CategoryBreakdownRow(item, screenState.currencySymbol)
+            items(slices) { slice ->
+                CategorySliceRow(slice = slice, currencySymbol = screenState.currencySymbol, accent = accent)
                 HorizontalDivider()
             }
             item { Spacer(modifier = Modifier.height(80.dp)) }
@@ -131,41 +111,68 @@ fun OverviewScreen(viewModel: OverviewViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun DonutChart(
-    breakdown: List<CategoryBreakdown>,
-    accentColor: Color,
+private fun SegmentedTotalsRow(
+    selectedSide: TransactionType,
+    expenseTotal: Double,
+    incomeTotal: Double,
+    currencySymbol: String,
+    onSideSelected: (TransactionType) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = breakdown.mapIndexed { i, _ ->
-        val hue = (i * 137.5f) % 360f
-        Color.hsl(hue, 0.6f, 0.5f)
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        TotalsCard(
+            label = "Expenses",
+            amount = expenseTotal,
+            color = ExpenseColor,
+            selected = selectedSide == TransactionType.EXPENSE,
+            currencySymbol = currencySymbol,
+            onClick = { onSideSelected(TransactionType.EXPENSE) },
+            modifier = Modifier.weight(1f)
+        )
+        TotalsCard(
+            label = "Income",
+            amount = incomeTotal,
+            color = IncomeColor,
+            selected = selectedSide == TransactionType.INCOME,
+            currencySymbol = currencySymbol,
+            onClick = { onSideSelected(TransactionType.INCOME) },
+            modifier = Modifier.weight(1f)
+        )
     }
+}
 
-    Canvas(modifier = modifier) {
-        val strokeWidth = size.minDimension * 0.18f
-        val radius = (size.minDimension - strokeWidth) / 2f
-        val topLeft = Offset(center.x - radius, center.y - radius)
-        val arcSize = Size(radius * 2, radius * 2)
-
-        var startAngle = -90f
-        breakdown.forEachIndexed { i, item ->
-            val sweep = item.percentage / 100f * 360f
-            drawArc(
-                color = colors[i],
-                startAngle = startAngle,
-                sweepAngle = sweep,
-                useCenter = false,
-                topLeft = topLeft,
-                size = arcSize,
-                style = Stroke(width = strokeWidth)
+@Composable
+private fun TotalsCard(
+    label: String,
+    amount: Double,
+    color: Color,
+    selected: Boolean,
+    currencySymbol: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                CurrencyFormatter.formatAbsolute(amount, currencySymbol),
+                style = MaterialTheme.typography.titleLarge,
+                color = color,
+                fontWeight = FontWeight.Bold
             )
-            startAngle += sweep
         }
     }
 }
 
 @Composable
-private fun CategoryBreakdownRow(item: CategoryBreakdown, currencySymbol: String) {
+private fun CategorySliceRow(slice: CategoryBreakdown, currencySymbol: String, accent: Color) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -176,26 +183,33 @@ private fun CategoryBreakdownRow(item: CategoryBreakdown, currencySymbol: String
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(12.dp)
-                    .then(Modifier)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color(slice.category.color)),
+                contentAlignment = Alignment.Center
             ) {
-                Canvas(modifier = Modifier.size(12.dp)) {
-                    drawCircle(color = Color(item.category.color))
-                }
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(item.category.name, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "${item.percentage.toInt()}%",
-                    style = MaterialTheme.typography.bodyMedium,
+                    slice.category.name.firstOrNull()?.uppercase() ?: "·",
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.size(12.dp))
+            Column {
+                Text(slice.category.name, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = "${slice.transactionCount} transactions",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
         Text(
-            CurrencyFormatter.formatAbsolute(item.amount, currencySymbol),
-            style = MaterialTheme.typography.bodyLarge
+            CurrencyFormatter.formatAbsolute(slice.amount, currencySymbol),
+            style = MaterialTheme.typography.titleMedium,
+            color = accent,
+            fontWeight = FontWeight.SemiBold
         )
     }
 }

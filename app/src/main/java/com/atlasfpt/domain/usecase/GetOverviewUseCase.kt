@@ -12,7 +12,8 @@ import javax.inject.Inject
 data class CategoryBreakdown(
     val category: Category,
     val amount: Double,
-    val percentage: Float
+    val percentage: Float,
+    val transactionCount: Int
 )
 
 data class OverviewUiState(
@@ -45,7 +46,8 @@ class GetOverviewUseCase @Inject constructor(
                     CategoryBreakdown(
                         category = cat,
                         amount = ct.total,
-                        percentage = if (grandTotal > 0) (ct.total / grandTotal * 100).toFloat() else 0f
+                        percentage = if (grandTotal > 0) (ct.total / grandTotal * 100).toFloat() else 0f,
+                        transactionCount = ct.count
                     )
                 }.sortedByDescending { it.amount }
 
