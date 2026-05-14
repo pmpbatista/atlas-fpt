@@ -28,6 +28,9 @@ private const val BAR_HEIGHT_DP = 160
 private const val CURRENT_ALPHA = 1.0f
 private const val PRIOR_ALPHA = 0.55f
 
+private val BAR_LABEL_FORMATTER: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("MMM\nyyyy", Locale("pt", "PT"))
+
 @Composable
 fun CashFlowBarChart(
     bars: List<MonthBar>,
@@ -93,7 +96,6 @@ fun CashFlowBarChart(
         }
 
         Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) {
-            val labelFormatter = DateTimeFormatter.ofPattern("MMM\nyyyy", Locale("pt", "PT"))
             bars.forEach { bar ->
                 Box(
                     modifier = Modifier
@@ -101,7 +103,7 @@ fun CashFlowBarChart(
                     contentAlignment = androidx.compose.ui.Alignment.Center
                 ) {
                     Text(
-                        text = bar.month.atDay(1).format(labelFormatter),
+                        text = bar.month.atDay(1).format(BAR_LABEL_FORMATTER),
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

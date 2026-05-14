@@ -319,11 +319,14 @@ private fun DayHeader(day: DayGroup, currencySymbol: String) {
     }
 }
 
+private val DAY_LABEL_FORMATTER: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("d 'de' MMMM", Locale("pt", "PT"))
+
 private fun formatDayLabel(date: LocalDate): String {
     val today = LocalDate.now()
     return when (date) {
         today -> "Today"
         today.minusDays(1) -> "Yesterday"
-        else -> date.format(DateTimeFormatter.ofPattern("d 'de' MMMM", Locale("pt", "PT")))
+        else -> date.format(DAY_LABEL_FORMATTER)
     }
 }
