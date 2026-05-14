@@ -5,8 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.atlasfpt.data.settings.AppSettings
 import com.atlasfpt.data.settings.SettingsRepository
 import com.atlasfpt.domain.model.Transaction
-import com.atlasfpt.domain.usecase.GetTimelineUseCase
 import com.atlasfpt.domain.usecase.DeleteTransactionUseCase
+import com.atlasfpt.domain.usecase.GetTimelineUseCase
 import com.atlasfpt.domain.usecase.TimelineData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -18,10 +18,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class WalletFilter { All }
+enum class RangeMode { ByMonths, ByWeeks }
+
 data class TimelineUiState(
-    val timelineData: TimelineData? = null,
+    val timelineData: TimelineData = TimelineData(),
     val settings: AppSettings = AppSettings(),
     val pendingDelete: Transaction? = null,
+    val walletFilter: WalletFilter = WalletFilter.All,
+    val rangeMode: RangeMode = RangeMode.ByMonths,
     val isLoading: Boolean = true
 )
 
@@ -33,16 +38,22 @@ class TimelineViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val pendingDelete = MutableStateFlow<Transaction?>(null)
+    private val walletFilter = MutableStateFlow(WalletFilter.All)
+    private val rangeMode = MutableStateFlow(RangeMode.ByMonths)
 
     val uiState: StateFlow<TimelineUiState> = combine(
         getTimeline(),
         settingsRepository.settings,
-        pendingDelete
-    ) { data, settings, pending ->
+        pendingDelete,
+        walletFilter,
+        rangeMode
+    ) { data, settings, pending, wallet, range ->
         TimelineUiState(
             timelineData = data,
             settings = settings,
             pendingDelete = pending,
+            walletFilter = wallet,
+            rangeMode = range,
             isLoading = false
         )
     }.stateIn(
@@ -63,7 +74,7 @@ class TimelineViewModel @Inject constructor(
         }
     }
 
-    fun undoDelete() {
-        pendingDelete.value = null
-    }
+    fun undoDelete() { pendingDelete.value = null }
+    fun onWalletFilterSelected(filter: WalletFilter) { walletFilter.value = filter }
+    fun onRangeModeSelected(mode: RangeMode) { rangeMode.value = mode }
 }
