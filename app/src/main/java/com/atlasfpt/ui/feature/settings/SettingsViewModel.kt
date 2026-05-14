@@ -28,4 +28,10 @@ class SettingsViewModel @Inject constructor(
             settingsRepository.updateCurrency(symbol, code)
         }
     }
+
+    fun setBackgroundRefreshEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setBackgroundRefreshEnabled(enabled)
+        }
+    }
 }
