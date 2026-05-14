@@ -66,6 +66,19 @@ fun OverviewScreen(viewModel: OverviewViewModel = hiltViewModel()) {
                 .padding(horizontal = 8.dp, vertical = 4.dp)
         )
 
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.Start
+        ) {
+            com.atlasfpt.ui.component.PersonsFilterChip(
+                persons = screenState.availablePersons,
+                selectedIds = screenState.selectedPersonIds,
+                onSelectionChanged = viewModel::onPersonsSelected
+            )
+        }
+
         SegmentedTotalsRow(
             selectedSide = screenState.selectedSide,
             expenseTotal = state.totalExpense,
