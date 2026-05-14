@@ -18,7 +18,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
 
     private fun loadSettings() = AppSettings(
         currencySymbol = prefs.getString("currency_symbol", "€") ?: "€",
-        currencyCode = prefs.getString("currency_code", "EUR") ?: "EUR"
+        currencyCode = prefs.getString("currency_code", "EUR") ?: "EUR",
+        backgroundRefreshEnabled = prefs.getBoolean("bg_refresh_enabled", true),
+        lastPriceRefreshAt = if (prefs.contains("last_price_refresh_at"))
+            prefs.getLong("last_price_refresh_at", 0L)
+        else null,
     )
 
     fun updateCurrency(symbol: String, code: String) {
@@ -26,6 +30,16 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
             .putString("currency_symbol", symbol)
             .putString("currency_code", code)
             .apply()
+        _settings.value = loadSettings()
+    }
+
+    fun setBackgroundRefreshEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("bg_refresh_enabled", enabled).apply()
+        _settings.value = loadSettings()
+    }
+
+    fun setLastPriceRefreshAt(millis: Long) {
+        prefs.edit().putLong("last_price_refresh_at", millis).apply()
         _settings.value = loadSettings()
     }
 }
