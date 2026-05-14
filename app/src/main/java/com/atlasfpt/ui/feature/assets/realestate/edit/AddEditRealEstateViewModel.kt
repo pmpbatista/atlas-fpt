@@ -245,7 +245,13 @@ class AddEditRealEstateViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 deleteUseCase(editingId)
+                // Clean up both the loaded photo (if any) and any in-session pick that
+                // replaced it. If they're the same path, deleting twice is a no-op.
+                val current = _form.value.photoUri
                 loadedPhotoUri?.let { photoStorage.delete(it) }
+                if (current != null && current != loadedPhotoUri) {
+                    photoStorage.delete(current)
+                }
                 _form.update { it.copy(isLoading = false, isDeleted = true) }
             } catch (t: Throwable) {
                 _form.update {
