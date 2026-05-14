@@ -9,11 +9,6 @@ import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
 
-sealed class TimelineItem {
-    data class DateHeader(val date: LocalDate, val dailyTotal: Double) : TimelineItem()
-    data class TransactionRow(val transaction: Transaction) : TimelineItem()
-}
-
 data class MonthBar(
     val month: YearMonth,
     val income: Double,
@@ -39,12 +34,7 @@ data class TimelineData(
     val headerTotal: Double = 0.0,
     val bars: List<MonthBar> = emptyList(),
     val scheduled: ScheduledRollup? = null,
-    val days: List<DayGroup> = emptyList(),
-    // Kept temporarily so the legacy screen still compiles until Task 6 lands:
-    val totalCashFlow: Double = 0.0,
-    val monthlySummaries: List<com.atlasfpt.data.db.dao.MonthlySummary> = emptyList(),
-    val scheduledTransactions: List<Transaction> = emptyList(),
-    val timelineItems: List<TimelineItem> = emptyList()
+    val days: List<DayGroup> = emptyList()
 )
 
 class GetTimelineUseCase @Inject constructor(
@@ -52,9 +42,8 @@ class GetTimelineUseCase @Inject constructor(
 ) {
     operator fun invoke(): Flow<TimelineData> = combine(
         transactionRepository.observeAll(),
-        transactionRepository.observeScheduled(),
-        transactionRepository.observeMonthlySummaries()
-    ) { all, scheduled, summaries ->
+        transactionRepository.observeScheduled()
+    ) { all, scheduled ->
         val headerTotal = all.sumOf { tx ->
             if (tx.type == TransactionType.EXPENSE) -tx.amount else tx.amount
         }
@@ -62,11 +51,7 @@ class GetTimelineUseCase @Inject constructor(
             headerTotal = headerTotal,
             bars = buildBars(all),
             scheduled = buildScheduled(scheduled),
-            days = buildDays(all),
-            totalCashFlow = headerTotal,
-            monthlySummaries = summaries,
-            scheduledTransactions = scheduled,
-            timelineItems = buildItems(all)
+            days = buildDays(all)
         )
     }
 
@@ -109,19 +94,6 @@ class GetTimelineUseCase @Inject constructor(
                         )
                     }
                 )
-            }
-    }
-
-    private fun buildItems(transactions: List<Transaction>): List<TimelineItem> {
-        val grouped = transactions.groupBy { it.date }
-        return grouped.entries
-            .sortedByDescending { it.key }
-            .flatMap { (date, txs) ->
-                val dailyTotal = txs.sumOf { tx ->
-                    if (tx.type == TransactionType.EXPENSE) -tx.amount else tx.amount
-                }
-                listOf(TimelineItem.DateHeader(date, dailyTotal)) +
-                    txs.map { TimelineItem.TransactionRow(it) }
             }
     }
 }
