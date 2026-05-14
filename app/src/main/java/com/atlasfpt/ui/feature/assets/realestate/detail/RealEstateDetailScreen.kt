@@ -32,8 +32,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.atlasfpt.domain.model.EuriborRate
@@ -106,6 +110,20 @@ fun RealEstateDetailScreen(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)
                 ) {
+                    asset.photoUri?.let { photo ->
+                        item {
+                            AsyncImage(
+                                model = photo,
+                                contentDescription = "Property photo",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                                    .clip(RoundedCornerShape(12.dp)),
+                            )
+                            Spacer(Modifier.height(16.dp))
+                        }
+                    }
                     item { ValuationCard(asset, equity) }
                     item { Spacer(Modifier.height(16.dp)); PurchaseSummary(asset) }
                     item {
