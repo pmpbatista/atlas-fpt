@@ -158,7 +158,7 @@ class AddTransactionViewModel @Inject constructor(
                 photoUri = state.photoUri,
                 labels = state.labels,
                 persons = state.persons,
-                recurringRuleId = null,
+                recurringRuleId = loadedTransaction?.recurringRuleId,
                 isScheduled = false
             )
             saveTransaction(tx)
