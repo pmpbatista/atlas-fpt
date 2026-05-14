@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
@@ -27,20 +29,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.atlasfpt.domain.model.Transaction
 import com.atlasfpt.domain.model.TransactionType
+import com.atlasfpt.domain.usecase.TransactionRowItem
 import com.atlasfpt.ui.theme.ExpenseColor
 import com.atlasfpt.ui.theme.IncomeColor
 import com.atlasfpt.util.CurrencyFormatter
 
 @Composable
 fun TransactionRow(
-    transaction: Transaction,
+    item: TransactionRowItem,
     currencySymbol: String,
     onClick: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val tx = item.transaction
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             if (value == SwipeToDismissBoxValue.EndToStart) {
@@ -77,30 +80,30 @@ fun TransactionRow(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            CategoryIcon(
-                color = transaction.category.color,
-                name = transaction.category.name
-            )
+            CategoryIcon(color = tx.category.color, name = tx.category.name)
 
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = transaction.category.name,
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = tx.category.name,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                if (!transaction.note.isNullOrBlank()) {
-                    Text(
-                        text = transaction.note,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                IconLine(
+                    icon = Icons.Default.AccountBalanceWallet,
+                    contentDescription = "Wallet",
+                    text = item.walletLabel
+                )
+                item.noteLine?.let { note ->
+                    IconLine(
+                        icon = Icons.Default.EditNote,
+                        contentDescription = "Note",
+                        text = note
                     )
                 }
-                if (transaction.persons.isNotEmpty()) {
+                if (tx.persons.isNotEmpty()) {
                     Text(
-                        text = "with " + transaction.persons.joinToString(", ") { it.name },
+                        text = "with " + tx.persons.joinToString(", ") { it.name },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -109,11 +112,35 @@ fun TransactionRow(
                 }
             }
             Text(
-                text = CurrencyFormatter.format(transaction.amount, currencySymbol, transaction.type),
+                text = CurrencyFormatter.format(tx.amount, currencySymbol, tx.type),
                 style = MaterialTheme.typography.titleMedium,
-                color = if (transaction.type == TransactionType.EXPENSE) ExpenseColor else IncomeColor
+                color = if (tx.type == TransactionType.EXPENSE) ExpenseColor else IncomeColor
             )
         }
+    }
+}
+
+@Composable
+private fun IconLine(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    text: String
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

@@ -6,18 +6,35 @@ import com.atlasfpt.domain.model.TransactionType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.time.LocalDate
+import java.time.YearMonth
 import javax.inject.Inject
 
-sealed class TimelineItem {
-    data class DateHeader(val date: LocalDate, val dailyTotal: Double) : TimelineItem()
-    data class TransactionRow(val transaction: Transaction) : TimelineItem()
-}
+data class MonthBar(
+    val month: YearMonth,
+    val income: Double,
+    val expense: Double,
+    val isCurrent: Boolean
+)
+
+data class ScheduledRollup(val count: Int, val net: Double)
+
+data class TransactionRowItem(
+    val transaction: Transaction,
+    val walletLabel: String,
+    val noteLine: String?
+)
+
+data class DayGroup(
+    val date: LocalDate,
+    val net: Double,
+    val rows: List<TransactionRowItem>
+)
 
 data class TimelineData(
-    val totalCashFlow: Double = 0.0,
-    val monthlySummaries: List<com.atlasfpt.data.db.dao.MonthlySummary> = emptyList(),
-    val scheduledTransactions: List<Transaction> = emptyList(),
-    val timelineItems: List<TimelineItem> = emptyList()
+    val headerTotal: Double = 0.0,
+    val bars: List<MonthBar> = emptyList(),
+    val scheduled: ScheduledRollup? = null,
+    val days: List<DayGroup> = emptyList()
 )
 
 class GetTimelineUseCase @Inject constructor(
@@ -25,30 +42,58 @@ class GetTimelineUseCase @Inject constructor(
 ) {
     operator fun invoke(): Flow<TimelineData> = combine(
         transactionRepository.observeAll(),
-        transactionRepository.observeScheduled(),
-        transactionRepository.observeMonthlySummaries()
-    ) { all, scheduled, summaries ->
-        val totalCashFlow = all.sumOf { tx ->
+        transactionRepository.observeScheduled()
+    ) { all, scheduled ->
+        val headerTotal = all.sumOf { tx ->
             if (tx.type == TransactionType.EXPENSE) -tx.amount else tx.amount
         }
         TimelineData(
-            totalCashFlow = totalCashFlow,
-            monthlySummaries = summaries,
-            scheduledTransactions = scheduled,
-            timelineItems = buildItems(all)
+            headerTotal = headerTotal,
+            bars = buildBars(all),
+            scheduled = buildScheduled(scheduled),
+            days = buildDays(all)
         )
     }
 
-    private fun buildItems(transactions: List<Transaction>): List<TimelineItem> {
-        val grouped = transactions.groupBy { it.date }
-        return grouped.entries
+    private fun buildBars(transactions: List<Transaction>): List<MonthBar> {
+        val today = YearMonth.now()
+        val window = (5 downTo 0).map { today.minusMonths(it.toLong()) }
+        val byMonth = transactions.groupBy { YearMonth.from(it.date) }
+        return window.map { month ->
+            val rows = byMonth[month].orEmpty()
+            val income = rows.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+            val expense = rows.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+            MonthBar(month, income, expense, isCurrent = month == today)
+        }
+    }
+
+    private fun buildScheduled(scheduled: List<Transaction>): ScheduledRollup? {
+        if (scheduled.isEmpty()) return null
+        val net = scheduled.sumOf { tx ->
+            if (tx.type == TransactionType.EXPENSE) -tx.amount else tx.amount
+        }
+        return ScheduledRollup(count = scheduled.size, net = net)
+    }
+
+    private fun buildDays(transactions: List<Transaction>): List<DayGroup> {
+        return transactions.groupBy { it.date }
+            .entries
             .sortedByDescending { it.key }
-            .flatMap { (date, txs) ->
-                val dailyTotal = txs.sumOf { tx ->
+            .map { (date, txs) ->
+                val net = txs.sumOf { tx ->
                     if (tx.type == TransactionType.EXPENSE) -tx.amount else tx.amount
                 }
-                listOf(TimelineItem.DateHeader(date, dailyTotal)) +
-                    txs.map { TimelineItem.TransactionRow(it) }
+                DayGroup(
+                    date = date,
+                    net = net,
+                    rows = txs.map { tx ->
+                        TransactionRowItem(
+                            transaction = tx,
+                            walletLabel = "Wallet",
+                            noteLine = tx.note?.takeIf { it.isNotBlank() }
+                        )
+                    }
+                )
             }
     }
 }
