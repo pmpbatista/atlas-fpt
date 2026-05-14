@@ -46,7 +46,7 @@ interface TransactionDao {
     fun observeDailySummaries(from: LocalDate, to: LocalDate): Flow<List<DailySummary>>
 
     @Query("""
-        SELECT categoryId, SUM(amount) as total
+        SELECT categoryId, SUM(amount) as total, COUNT(*) as count
         FROM transactions
         WHERE isScheduled = 0 AND type = :type AND date BETWEEN :from AND :to
         GROUP BY categoryId
@@ -107,4 +107,4 @@ interface TransactionDao {
 
 data class DailySummary(val date: LocalDate, val totalExpense: Double, val totalIncome: Double)
 data class MonthlySummary(val month: String, val totalExpense: Double, val totalIncome: Double)
-data class CategoryTotal(val categoryId: Long, val total: Double)
+data class CategoryTotal(val categoryId: Long, val total: Double, val count: Int)
