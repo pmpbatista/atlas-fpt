@@ -47,7 +47,8 @@ data class AddTransactionUiState(
     val showPersonPicker: Boolean = false,
     val showAssetPicker: Boolean = false,
     val showDeleteConfirmation: Boolean = false,
-    val isDeleted: Boolean = false
+    val isDeleted: Boolean = false,
+    val canDelete: Boolean = false
 )
 
 @HiltViewModel
@@ -99,7 +100,8 @@ class AddTransactionViewModel @Inject constructor(
                     note = tx.note ?: "",
                     photoUri = tx.photoUri,
                     labels = tx.labels,
-                    persons = tx.persons
+                    persons = tx.persons,
+                    canDelete = true
                 )
             }
         }
