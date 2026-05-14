@@ -40,19 +40,26 @@ data class TimelineData(
 class GetTimelineUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository
 ) {
-    operator fun invoke(): Flow<TimelineData> = combine(
+    operator fun invoke(personFilterIds: Set<Long> = emptySet()): Flow<TimelineData> = combine(
         transactionRepository.observeAll(),
         transactionRepository.observeScheduled()
     ) { all, scheduled ->
-        val headerTotal = all.sumOf { tx ->
+        val filtered = applyPersonFilter(all, personFilterIds)
+        val filteredScheduled = applyPersonFilter(scheduled, personFilterIds)
+        val headerTotal = filtered.sumOf { tx ->
             if (tx.type == TransactionType.EXPENSE) -tx.amount else tx.amount
         }
         TimelineData(
             headerTotal = headerTotal,
-            bars = buildBars(all),
-            scheduled = buildScheduled(scheduled),
-            days = buildDays(all)
+            bars = buildBars(filtered),
+            scheduled = buildScheduled(filteredScheduled),
+            days = buildDays(filtered)
         )
+    }
+
+    private fun applyPersonFilter(transactions: List<Transaction>, ids: Set<Long>): List<Transaction> {
+        if (ids.isEmpty()) return transactions
+        return transactions.filter { tx -> tx.persons.any { it.id in ids } }
     }
 
     private fun buildBars(transactions: List<Transaction>): List<MonthBar> {
