@@ -5,17 +5,27 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.atlasfpt.domain.model.FinancialLot
 import com.atlasfpt.domain.model.QuoteResult
+import com.atlasfpt.domain.model.SearchResult
 import com.atlasfpt.domain.model.TickerQuote
+import com.atlasfpt.domain.model.TickerSearchResult
 import com.atlasfpt.domain.usecase.SaveFinancialAssetUseCase
+import com.atlasfpt.domain.usecase.SearchTickersUseCase
 import com.atlasfpt.domain.usecase.ValidateTickerUseCase
 import com.atlasfpt.util.parseDecimal
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -43,6 +53,7 @@ data class AddFinancialFormErrors(
 data class AddFinancialAssetUiState(
     val ticker: String = "",
     val tickerState: TickerState = TickerState.Idle,
+    val searchResults: SearchResult = SearchResult.Empty,
     val name: String = "",
     val purchaseDate: LocalDate? = null,
     val quantity: String = "",
@@ -57,16 +68,38 @@ data class AddFinancialAssetUiState(
     val canSave: Boolean get() = !isLoading && !formErrors.hasAny && tickerState is TickerState.Valid
 }
 
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 class AddFinancialAssetViewModel @Inject constructor(
     @Suppress("UNUSED_PARAMETER") savedStateHandle: SavedStateHandle,
     private val validateTicker: ValidateTickerUseCase,
+    private val searchTickers: SearchTickersUseCase,
     private val saveAsset: SaveFinancialAssetUseCase,
 ) : ViewModel() {
 
     private val _form = MutableStateFlow(AddFinancialAssetUiState())
+    private val searchQuery = MutableStateFlow("")
     private var nameUserEdited = false
     private var validationJob: Job? = null
+
+    init {
+        viewModelScope.launch {
+            searchQuery
+                .debounce(300)
+                .flatMapLatest { query ->
+                    if (query.isBlank()) {
+                        flowOf<SearchResult>(SearchResult.Empty)
+                    } else {
+                        flow {
+                            emit(SearchResult.Loading)
+                            emit(searchTickers(query))
+                        }
+                    }
+                }
+                .onEach { result -> _form.update { it.copy(searchResults = result) } }
+                .collect { /* terminal */ }
+        }
+    }
 
     val uiState: StateFlow<AddFinancialAssetUiState> = _form
         .map { it.copy(formErrors = computeErrors(it)) }
@@ -86,10 +119,11 @@ class AddFinancialAssetViewModel @Inject constructor(
                 tickerState = if (normalized.isBlank()) TickerState.Idle else TickerState.Validating,
             )
         }
+        searchQuery.value = normalized
         validationJob?.cancel()
         if (normalized.isBlank()) return
         validationJob = viewModelScope.launch {
-            delay(500) // debounce
+            delay(500)
             when (val result = validateTicker(normalized)) {
                 is QuoteResult.Success -> {
                     val quote = result.quote
@@ -97,7 +131,6 @@ class AddFinancialAssetViewModel @Inject constructor(
                         current.copy(
                             tickerState = TickerState.Valid(quote),
                             currencyCode = quote.currencyCode,
-                            // Prefill name only if not user-edited
                             name = if (!nameUserEdited) quote.displayName else current.name,
                             pricePerUnit = if (current.pricePerUnit.isBlank())
                                 String.format(java.util.Locale.US, "%.2f", quote.price)
@@ -122,6 +155,14 @@ class AddFinancialAssetViewModel @Inject constructor(
             }
         }
     }
+
+    fun onSearchResultSelected(item: TickerSearchResult) {
+        _form.update { it.copy(searchResults = SearchResult.Empty) }
+        searchQuery.value = ""
+        onTicker(item.symbol)
+    }
+
+    fun onSearchDismissed() { _form.update { it.copy(searchResults = SearchResult.Empty) } }
 
     fun onName(v: String) {
         nameUserEdited = true
@@ -167,7 +208,7 @@ class AddFinancialAssetViewModel @Inject constructor(
         val tickerErr = when (s.tickerState) {
             is TickerState.Valid -> null
             TickerState.Idle -> "Ticker is required"
-            TickerState.Validating -> "Validating…" // not user-shown; gates Save
+            TickerState.Validating -> "Validating…"
             is TickerState.Invalid -> s.tickerState.reason
             is TickerState.Error -> s.tickerState.reason
         }
