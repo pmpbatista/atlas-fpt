@@ -13,5 +13,6 @@ data class Transaction(
     val labels: List<Label>,
     val persons: List<Person>,
     val recurringRuleId: Long?,
-    val isScheduled: Boolean
+    val isScheduled: Boolean,
+    val assetId: Long? = null
 )

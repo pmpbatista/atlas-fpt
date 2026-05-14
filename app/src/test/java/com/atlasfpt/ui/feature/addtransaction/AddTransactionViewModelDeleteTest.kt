@@ -1,6 +1,7 @@
 package com.atlasfpt.ui.feature.addtransaction
 
 import app.cash.turbine.test
+import com.atlasfpt.data.repository.AssetRepository
 import com.atlasfpt.data.repository.CategoryRepository
 import com.atlasfpt.data.repository.PersonRepository
 import com.atlasfpt.data.repository.TransactionRepository
@@ -41,6 +42,7 @@ class AddTransactionViewModelDeleteTest {
     private val settingsRepository: SettingsRepository = mockk()
     private val deleteTransaction: DeleteTransactionUseCase = mockk(relaxed = true)
     private val personRepository: PersonRepository = mockk()
+    private val assetRepository: AssetRepository = mockk()
 
     private lateinit var viewModel: AddTransactionViewModel
 
@@ -66,6 +68,7 @@ class AddTransactionViewModelDeleteTest {
         every { categoryRepository.observeAll() } returns flowOf(emptyList())
         every { settingsRepository.settings } returns MutableStateFlow(AppSettings())
         every { personRepository.observeAll() } returns flowOf(emptyList())
+        every { assetRepository.observeAssetList() } returns flowOf(emptyList())
         coEvery { transactionRepository.getById(42L) } returns fakeTransaction
         viewModel = AddTransactionViewModel(
             saveTransaction,
@@ -73,7 +76,8 @@ class AddTransactionViewModelDeleteTest {
             transactionRepository,
             settingsRepository,
             deleteTransaction,
-            personRepository
+            personRepository,
+            assetRepository
         )
     }
 

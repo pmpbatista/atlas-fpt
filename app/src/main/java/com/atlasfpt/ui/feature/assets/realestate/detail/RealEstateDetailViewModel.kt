@@ -3,12 +3,16 @@ package com.atlasfpt.ui.feature.assets.realestate.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.atlasfpt.data.repository.TransactionRepository
+import com.atlasfpt.data.settings.SettingsRepository
 import com.atlasfpt.domain.model.RealEstateAsset
+import com.atlasfpt.domain.model.Transaction
 import com.atlasfpt.domain.usecase.GetRealEstateUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -16,6 +20,8 @@ import javax.inject.Inject
 data class RealEstateDetailUiState(
     val asset: RealEstateAsset? = null,
     val loadError: Boolean = false,
+    val linkedTransactions: List<Transaction> = emptyList(),
+    val currencySymbol: String = "€",
 ) {
     val equity: Double? get() = asset?.let { it.currentValue - (it.outstandingDebt ?: 0.0) }
 }
@@ -24,6 +30,8 @@ data class RealEstateDetailUiState(
 class RealEstateDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getRealEstate: GetRealEstateUseCase,
+    private val transactionRepository: TransactionRepository,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RealEstateDetailUiState())
@@ -40,6 +48,16 @@ class RealEstateDetailViewModel @Inject constructor(
                     _state.update { it.copy(loadError = true) }
                 } else {
                     _state.update { it.copy(asset = asset) }
+                }
+            }
+            viewModelScope.launch {
+                transactionRepository.observeByAssetId(id).collect { txs ->
+                    _state.update { it.copy(linkedTransactions = txs) }
+                }
+            }
+            viewModelScope.launch {
+                settingsRepository.settings.collect { s ->
+                    _state.update { it.copy(currencySymbol = s.currencySymbol) }
                 }
             }
         }

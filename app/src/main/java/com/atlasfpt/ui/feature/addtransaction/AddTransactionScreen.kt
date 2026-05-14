@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.DeleteOutline
@@ -54,6 +55,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.atlasfpt.domain.model.TransactionType
 import com.atlasfpt.ui.component.AmountDisplay
+import com.atlasfpt.ui.component.AssetPickerBottomSheet
 import com.atlasfpt.ui.component.CategoryPickerBottomSheet
 import com.atlasfpt.ui.component.DatePickerModal
 import com.atlasfpt.ui.component.LabelChip
@@ -280,6 +282,31 @@ fun AddTransactionScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Link asset row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { viewModel.onShowAssetPicker() }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.AccountBalanceWallet,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = uiState.selectedAsset?.name ?: "Link asset (optional)",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
         } // end scrollable content column
 
             // Save button
@@ -305,6 +332,15 @@ fun AddTransactionScreen(
                 else viewModel.onPersonAdded(person)
             },
             onDismiss = viewModel::onDismissPersonPicker
+        )
+    }
+
+    if (uiState.showAssetPicker) {
+        AssetPickerBottomSheet(
+            allAssets = uiState.availableAssets,
+            selectedAssetId = uiState.selectedAsset?.id,
+            onSelect = viewModel::onAssetSelected,
+            onDismiss = viewModel::onDismissAssetPicker
         )
     }
 
