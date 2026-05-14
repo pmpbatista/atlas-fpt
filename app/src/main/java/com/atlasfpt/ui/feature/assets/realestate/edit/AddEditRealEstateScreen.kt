@@ -44,6 +44,7 @@ import androidx.navigation.NavController
 import com.atlasfpt.domain.model.EnergyRating
 import com.atlasfpt.domain.model.InterestType
 import com.atlasfpt.domain.model.ReferenceRate
+import com.atlasfpt.ui.component.DatePickerField
 import androidx.compose.foundation.text.KeyboardOptions
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -123,11 +124,11 @@ fun AddEditRealEstateScreen(
                 )
             }
             item {
-                DateRow(
+                DatePickerField(
                     label = "Purchase date",
                     value = state.purchaseDate,
+                    onChange = viewModel::onPurchaseDate,
                     error = state.formErrors.purchaseDate,
-                    onChange = viewModel::onPurchaseDate
                 )
             }
             item { NumberRow("Current value", state.currentValue, state.formErrors.currentValue, viewModel::onCurrentValue) }
@@ -161,11 +162,11 @@ fun AddEditRealEstateScreen(
                     item { NumberRow("Spread (%)", state.spread, state.formErrors.spread, viewModel::onSpread) }
                 }
                 item {
-                    DateRow(
+                    DatePickerField(
                         label = "Credit end date",
                         value = state.creditEndDate,
+                        onChange = viewModel::onCreditEndDate,
                         error = state.formErrors.creditEndDate,
-                        onChange = viewModel::onCreditEndDate
                     )
                 }
             }
@@ -219,33 +220,6 @@ private fun NumberRow(label: String, value: String, error: String?, onChange: (S
             label = { Text(label) },
             isError = error != null,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.fillMaxWidth()
-        )
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-    }
-}
-
-@Composable
-private fun DateRow(
-    label: String,
-    value: java.time.LocalDate?,
-    error: String?,
-    onChange: (java.time.LocalDate?) -> Unit
-) {
-    // Minimal date input: text field expecting YYYY-MM-DD. The user already encounters
-    // this format on the Add Transaction screen via the existing date picker; keeping
-    // this implementation simple here. A native DatePickerDialog can be added later.
-    var raw by remember(value) { mutableStateOf(value?.toString() ?: "") }
-    Column {
-        OutlinedTextField(
-            value = raw,
-            onValueChange = {
-                raw = it
-                val parsed = runCatching { java.time.LocalDate.parse(it) }.getOrNull()
-                onChange(parsed)
-            },
-            label = { Text("$label (YYYY-MM-DD)") },
-            isError = error != null,
             modifier = Modifier.fillMaxWidth()
         )
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }

@@ -27,8 +27,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,7 +38,6 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -58,14 +55,12 @@ import androidx.navigation.NavController
 import com.atlasfpt.domain.model.TransactionType
 import com.atlasfpt.ui.component.AmountDisplay
 import com.atlasfpt.ui.component.CategoryPickerBottomSheet
+import com.atlasfpt.ui.component.DatePickerModal
 import com.atlasfpt.ui.component.LabelChip
 import com.atlasfpt.ui.component.PersonChip
 import com.atlasfpt.ui.component.PersonPickerBottomSheet
 import com.atlasfpt.ui.theme.ExpenseColor
 import com.atlasfpt.ui.theme.IncomeColor
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -349,35 +344,6 @@ fun AddTransactionScreen(
                 }
             }
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DatePickerModal(
-    initialDate: LocalDate,
-    onDateSelected: (LocalDate) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val initialMillis = initialDate.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
-    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
-
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                datePickerState.selectedDateMillis?.let { millis ->
-                    val date = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
-                    onDateSelected(date)
-                }
-                onDismiss()
-            }) { Text("OK") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    ) {
-        DatePicker(state = datePickerState)
     }
 }
 

@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import java.time.LocalDate
+import com.atlasfpt.ui.component.DatePickerField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,7 +54,12 @@ fun AddLotScreen(
             modifier = Modifier.fillMaxWidth().padding(padding).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            DateRow("Date", state.purchaseDate, state.formErrors.purchaseDate, viewModel::onPurchaseDate)
+            DatePickerField(
+                label = "Date",
+                value = state.purchaseDate,
+                onChange = viewModel::onPurchaseDate,
+                error = state.formErrors.purchaseDate,
+            )
             NumberRow("Quantity", state.quantity, state.formErrors.quantity, viewModel::onQuantity)
             NumberRow("Price/share (${state.currencyCode})", state.pricePerUnit, state.formErrors.pricePerUnit, viewModel::onPricePerUnit)
         }
@@ -74,20 +79,3 @@ private fun NumberRow(label: String, value: String, error: String?, onChange: (S
     }
 }
 
-@Composable
-private fun DateRow(label: String, value: LocalDate?, error: String?, onChange: (LocalDate?) -> Unit) {
-    var raw by remember(value) { mutableStateOf(value?.toString() ?: "") }
-    Column {
-        OutlinedTextField(
-            value = raw,
-            onValueChange = {
-                raw = it
-                onChange(runCatching { LocalDate.parse(it) }.getOrNull())
-            },
-            label = { Text("$label (YYYY-MM-DD)") },
-            isError = error != null,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-    }
-}
