@@ -115,4 +115,32 @@ class GetTotalWealthUseCaseTest {
             awaitComplete()
         }
     }
+
+    @Test
+    fun `groups by type and currency`() = runTest {
+        useCase(listOf(
+            item(1, 100_000.0, currencyCode = "EUR"),                               // REAL_ESTATE (default)
+            AssetListItem(2L, AssetType.FINANCIAL, "stocks", 50_000.0, "EUR", null) // FINANCIAL
+        ))().test {
+            val w = awaitItem()
+            assertEquals(100_000.0, w.byCurrencyForType(AssetType.REAL_ESTATE)["EUR"]!!, 0.0001)
+            assertEquals(50_000.0, w.byCurrencyForType(AssetType.FINANCIAL)["EUR"]!!, 0.0001)
+            assertEquals(150_000.0, w.byCurrency["EUR"]!!, 0.0001)
+            assertEquals(2, w.assetCount)
+            assertTrue(w.hasType(AssetType.REAL_ESTATE))
+            assertTrue(w.hasType(AssetType.FINANCIAL))
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `single-type list reports only that type`() = runTest {
+        useCase(listOf(item(1, 100_000.0)))().test {
+            val w = awaitItem()
+            assertTrue(w.hasType(AssetType.REAL_ESTATE))
+            assertFalse(w.hasType(AssetType.FINANCIAL))
+            assertEquals(emptyMap<String, Double>(), w.byCurrencyForType(AssetType.FINANCIAL))
+            awaitComplete()
+        }
+    }
 }

@@ -39,7 +39,7 @@ class AssetsListViewModelTest {
     @Test
     fun `empty list shows empty state`() = runTest {
         every { getList() } returns flowOf(emptyList())
-        every { getTotal() } returns flowOf(TotalWealth(emptyMap(), 0))
+        every { getTotal() } returns flowOf(TotalWealth(emptyMap(), emptyMap()))
         val vm = AssetsListViewModel(getList, getTotal, refreshPrices)
 
         vm.uiState.test {
@@ -55,7 +55,7 @@ class AssetsListViewModelTest {
     fun `populated list maps items 1 to 1`() = runTest {
         val items = listOf(item(1), item(2))
         every { getList() } returns flowOf(items)
-        every { getTotal() } returns flowOf(TotalWealth(mapOf("EUR" to 200_000.0), 2))
+        every { getTotal() } returns flowOf(TotalWealth(mapOf(AssetType.REAL_ESTATE to mapOf("EUR" to 200_000.0)), mapOf(AssetType.REAL_ESTATE to 2)))
         val vm = AssetsListViewModel(getList, getTotal, refreshPrices)
 
         vm.uiState.test {
@@ -74,7 +74,7 @@ class AssetsListViewModelTest {
         val items = listOf(item(1, "EUR"), item(2, "USD"))
         every { getList() } returns flowOf(items)
         every { getTotal() } returns flowOf(
-            TotalWealth(mapOf("EUR" to 100_000.0, "USD" to 50_000.0), 2)
+            TotalWealth(mapOf(AssetType.REAL_ESTATE to mapOf("EUR" to 100_000.0, "USD" to 50_000.0)), mapOf(AssetType.REAL_ESTATE to 2))
         )
         val vm = AssetsListViewModel(getList, getTotal, refreshPrices)
 

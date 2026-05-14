@@ -10,8 +10,13 @@ class GetTotalWealthUseCase @Inject constructor(
     private val repo: AssetRepository,
 ) {
     operator fun invoke(): Flow<TotalWealth> = repo.observeAssetList().map { items ->
-        val byCurrency = items.groupBy { it.currencyCode }
-            .mapValues { (_, list) -> list.sumOf { it.equity } }
-        TotalWealth(byCurrency = byCurrency, assetCount = items.size)
+        val byTypeAndCurrency = items.groupBy { it.type }
+            .mapValues { (_, group) ->
+                group.groupBy { it.currencyCode }
+                    .mapValues { (_, list) -> list.sumOf { it.equity } }
+            }
+        val countByType = items.groupBy { it.type }
+            .mapValues { (_, g) -> g.size }
+        TotalWealth(byTypeAndCurrency = byTypeAndCurrency, countByType = countByType)
     }
 }

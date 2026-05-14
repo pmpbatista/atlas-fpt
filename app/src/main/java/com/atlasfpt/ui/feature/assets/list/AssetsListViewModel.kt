@@ -17,7 +17,7 @@ import javax.inject.Inject
 
 data class AssetsListUiState(
     val items: List<AssetListItem> = emptyList(),
-    val total: TotalWealth = TotalWealth(emptyMap(), 0),
+    val total: TotalWealth = TotalWealth(emptyMap(), emptyMap()),
     val isRefreshing: Boolean = false,
     val refreshMessage: String? = null,
 ) {
