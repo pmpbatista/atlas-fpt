@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.atlasfpt.data.settings.AppSettings
 import com.atlasfpt.data.settings.SettingsRepository
+import com.atlasfpt.data.storage.PhotoStorage
 import com.atlasfpt.domain.model.EnergyRating
 import com.atlasfpt.domain.model.InterestType
 import com.atlasfpt.domain.model.RealEstateAsset
@@ -38,6 +39,7 @@ class AddEditRealEstateViewModelTest {
     private val save: SaveRealEstateUseCase = mockk(relaxed = true)
     private val delete: DeleteAssetUseCase = mockk(relaxed = true)
     private val get: GetRealEstateUseCase = mockk()
+    private val photoStorage: PhotoStorage = mockk(relaxed = true)
     private val settingsRepository: SettingsRepository = mockk()
 
     private val existing = RealEstateAsset(
@@ -75,6 +77,7 @@ class AddEditRealEstateViewModelTest {
         saveUseCase = save,
         deleteUseCase = delete,
         getUseCase = get,
+        photoStorage = photoStorage,
         settingsRepository = settingsRepository
     )
 

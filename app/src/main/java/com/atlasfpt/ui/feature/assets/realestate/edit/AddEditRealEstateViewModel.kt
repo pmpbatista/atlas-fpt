@@ -1,9 +1,11 @@
 package com.atlasfpt.ui.feature.assets.realestate.edit
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.atlasfpt.data.settings.SettingsRepository
+import com.atlasfpt.data.storage.PhotoStorage
 import com.atlasfpt.domain.model.EnergyRating
 import com.atlasfpt.domain.model.InterestType
 import com.atlasfpt.domain.model.RealEstateAsset
@@ -71,6 +73,7 @@ data class AddEditRealEstateUiState(
     val parish: String = "",
     val sizeM2: String = "",
     val energyRating: EnergyRating = EnergyRating.B,
+    val photoUri: String? = null,
     val formErrors: FormErrors = FormErrors(),
     val isLoading: Boolean = false,
     val isSaved: Boolean = false,
@@ -85,12 +88,14 @@ class AddEditRealEstateViewModel @Inject constructor(
     private val saveUseCase: SaveRealEstateUseCase,
     private val deleteUseCase: DeleteAssetUseCase,
     private val getUseCase: GetRealEstateUseCase,
+    private val photoStorage: PhotoStorage,
     settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val editingId: Long = savedStateHandle.get<String>("assetId")?.toLongOrNull() ?: 0L
     private val isEditMode = editingId != 0L
     private var loadedCurrencyCode: String? = null
+    private var loadedPhotoUri: String? = null
 
     private val initialState = AddEditRealEstateUiState(
         isEditMode = isEditMode,
@@ -114,6 +119,7 @@ class AddEditRealEstateViewModel @Inject constructor(
         viewModelScope.launch {
             val asset = runCatching { getUseCase(id) }.getOrNull() ?: return@launch
             loadedCurrencyCode = asset.currencyCode
+            loadedPhotoUri = asset.photoUri
             _form.update {
                 it.copy(
                     name = asset.name,
@@ -134,7 +140,8 @@ class AddEditRealEstateViewModel @Inject constructor(
                     council = asset.council,
                     parish = asset.parish,
                     sizeM2 = asset.sizeM2.toCleanString(),
-                    energyRating = asset.energyRating
+                    energyRating = asset.energyRating,
+                    photoUri = asset.photoUri
                 )
             }
         }
@@ -174,6 +181,27 @@ class AddEditRealEstateViewModel @Inject constructor(
     fun onSizeM2(v: String) = _form.update { it.copy(sizeM2 = v) }
     fun onEnergyRating(r: EnergyRating) = _form.update { it.copy(energyRating = r) }
 
+    fun onPickPhoto(contentUri: Uri) {
+        viewModelScope.launch {
+            val newPath = photoStorage.copyInto(contentUri) ?: return@launch
+            // Delete the previously-shown photo if it's an in-session pick (not the loaded one)
+            val current = _form.value.photoUri
+            if (current != null && current != loadedPhotoUri) {
+                photoStorage.delete(current)
+            }
+            _form.update { it.copy(photoUri = newPath) }
+        }
+    }
+
+    fun onRemovePhoto() {
+        val current = _form.value.photoUri ?: return
+        // Only delete if it's an in-session pick — the loaded one stays on disk until save commits
+        if (current != loadedPhotoUri) {
+            photoStorage.delete(current)
+        }
+        _form.update { it.copy(photoUri = null) }
+    }
+
     fun showDeleteConfirmation() = _form.update { it.copy(showDeleteConfirmation = true) }
     fun hideDeleteConfirmation() = _form.update { it.copy(showDeleteConfirmation = false) }
 
@@ -185,6 +213,13 @@ class AddEditRealEstateViewModel @Inject constructor(
             try {
                 val asset = state.toDomain(id = editingId)
                 saveUseCase(asset)
+                // If we replaced or removed the loaded photo, delete the prior file now that the
+                // new state has been persisted.
+                val previous = loadedPhotoUri
+                val nowSaved = state.photoUri
+                if (previous != null && previous != nowSaved) {
+                    photoStorage.delete(previous)
+                }
                 _form.update { it.copy(isLoading = false, isSaved = true) }
             } catch (t: IllegalStateException) {
                 // RealEstateRepository.save throws this when the parent row was deleted
@@ -210,6 +245,7 @@ class AddEditRealEstateViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 deleteUseCase(editingId)
+                loadedPhotoUri?.let { photoStorage.delete(it) }
                 _form.update { it.copy(isLoading = false, isDeleted = true) }
             } catch (t: Throwable) {
                 _form.update {
@@ -321,7 +357,8 @@ class AddEditRealEstateViewModel @Inject constructor(
             council = council.trim(),
             parish = parish.trim(),
             sizeM2 = parseDecimal(sizeM2)!!,
-            energyRating = energyRating
+            energyRating = energyRating,
+            photoUri = this.photoUri
         )
     }
 }
