@@ -21,6 +21,10 @@ class PersonRepository @Inject constructor(private val dao: PersonDao) {
         dao.insert(person.toEntity())
     }
 
+    suspend fun rename(person: Person, newName: String) = withContext(Dispatchers.IO) {
+        dao.update(person.copy(name = newName).toEntity())
+    }
+
     suspend fun delete(person: Person) = withContext(Dispatchers.IO) {
         dao.delete(person.toEntity())
     }

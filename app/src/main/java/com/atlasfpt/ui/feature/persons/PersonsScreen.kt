@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -88,6 +89,12 @@ fun PersonsScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.weight(1f)
                         )
+                        IconButton(onClick = { viewModel.onRequestRename(person) }) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Rename ${person.name}",
+                            )
+                        }
                         IconButton(onClick = { viewModel.onRequestDelete(person) }) {
                             Icon(
                                 Icons.Default.DeleteOutline,
@@ -103,9 +110,22 @@ fun PersonsScreen(
     }
 
     if (uiState.showAddDialog) {
-        AddPersonDialog(
+        PersonNameDialog(
+            title = "Add person",
+            confirmLabel = "Add",
+            initialName = "",
             onConfirm = viewModel::addPerson,
             onDismiss = viewModel::onDismissAddDialog
+        )
+    }
+
+    uiState.renameTarget?.let { target ->
+        PersonNameDialog(
+            title = "Rename \"${target.name}\"",
+            confirmLabel = "Save",
+            initialName = target.name,
+            onConfirm = viewModel::onConfirmRename,
+            onDismiss = viewModel::onDismissRename
         )
     }
 
@@ -136,15 +156,18 @@ fun PersonsScreen(
 }
 
 @Composable
-private fun AddPersonDialog(
+private fun PersonNameDialog(
+    title: String,
+    confirmLabel: String,
+    initialName: String,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf(initialName) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add person") },
+        title = { Text(title) },
         text = {
             Column {
                 OutlinedTextField(
@@ -160,7 +183,7 @@ private fun AddPersonDialog(
                 onClick = { onConfirm(name) },
                 enabled = name.trim().isNotBlank()
             ) {
-                Text("Add")
+                Text(confirmLabel)
             }
         },
         dismissButton = {
