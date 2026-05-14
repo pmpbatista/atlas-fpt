@@ -3,7 +3,9 @@ package com.atlasfpt.ui.feature.assets.financial.add
 import androidx.lifecycle.SavedStateHandle
 import com.atlasfpt.domain.model.QuoteResult
 import com.atlasfpt.domain.model.TickerQuote
+import com.atlasfpt.domain.model.SearchResult
 import com.atlasfpt.domain.usecase.SaveFinancialAssetUseCase
+import com.atlasfpt.domain.usecase.SearchTickersUseCase
 import com.atlasfpt.domain.usecase.ValidateTickerUseCase
 import com.atlasfpt.util.MainDispatcherRule
 import io.mockk.coEvery
@@ -27,6 +29,9 @@ class AddFinancialAssetViewModelTest {
     @get:Rule val mainDispatcherRule = MainDispatcherRule()
 
     private val validate: ValidateTickerUseCase = mockk()
+    private val search: SearchTickersUseCase = mockk {
+        coEvery { this@mockk(any()) } returns SearchResult.Empty
+    }
     private val save: SaveFinancialAssetUseCase = mockk(relaxed = true)
 
     private val sampleQuote = TickerQuote(
@@ -40,6 +45,7 @@ class AddFinancialAssetViewModelTest {
     private fun viewModel() = AddFinancialAssetViewModel(
         savedStateHandle = SavedStateHandle(),
         validateTicker = validate,
+        searchTickers = search,
         saveAsset = save,
     )
 

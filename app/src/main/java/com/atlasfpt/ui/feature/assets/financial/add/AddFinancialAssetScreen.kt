@@ -1,19 +1,24 @@
 package com.atlasfpt.ui.feature.assets.financial.add
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.atlasfpt.domain.model.SearchResult
 import com.atlasfpt.ui.component.DatePickerField
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,10 +73,66 @@ fun AddFinancialAssetScreen(
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    val ts = state.tickerState
+                when (val results = state.searchResults) {
+                            SearchResult.Empty -> Unit
+                            SearchResult.Loading -> {
+                                Row(
+                                    modifier = Modifier.padding(top = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Searching…", style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                            is SearchResult.Success -> {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                                ) {
+                                    Column {
+                                        results.items.take(8).forEach { item ->
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable { viewModel.onSearchResultSelected(item) }
+                                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                            ) {
+                                                Text(item.symbol, style = MaterialTheme.typography.titleSmall)
+                                                val subtitle = listOfNotNull(item.displayName, item.exchange, item.typeLabel)
+                                                    .joinToString(" · ")
+                                                Text(
+                                                    text = subtitle,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                )
+                                            }
+                                            HorizontalDivider()
+                                        }
+                                    }
+                                }
+                            }
+                            SearchResult.NoMatches -> Text(
+                                "No matches found.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                            is SearchResult.Error -> Text(
+                                "Couldn't search. Check your connection.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
+
+                        val ts = state.tickerState
                     when (ts) {
                         TickerState.Idle -> Unit
-                        TickerState.Validating -> Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        TickerState.Validating -> Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
                             Spacer(Modifier.width(8.dp))
                             Text("Checking…", style = MaterialTheme.typography.bodySmall)

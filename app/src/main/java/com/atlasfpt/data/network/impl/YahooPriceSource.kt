@@ -5,7 +5,9 @@ import com.atlasfpt.data.network.ChartResponse
 import com.atlasfpt.data.network.PriceSource
 import com.atlasfpt.data.network.YahooFinanceApi
 import com.atlasfpt.domain.model.QuoteResult
+import com.atlasfpt.domain.model.SearchResult
 import com.atlasfpt.domain.model.TickerQuote
+import com.atlasfpt.domain.model.TickerSearchResult
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -54,6 +56,32 @@ class YahooPriceSource @Inject constructor(
         }.getOrElse { t ->
             runCatching { Log.w("YahooPriceSource", "fetchQuote($ticker) failed", t) }
             QuoteResult.Error(t.message ?: t.javaClass.simpleName)
+        }
+    }
+
+    override suspend fun searchTickers(query: String): SearchResult {
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) return SearchResult.Empty
+        return runCatching {
+            val response = api.search(trimmed)
+            if (!response.isSuccessful) {
+                SearchResult.Error("HTTP ${response.code()}")
+            } else {
+                val items = response.body()?.quotes.orEmpty().mapNotNull { q ->
+                    val symbol = q.symbol ?: return@mapNotNull null
+                    val name = q.longname ?: q.shortname ?: symbol
+                    TickerSearchResult(
+                        symbol = symbol,
+                        displayName = name,
+                        exchange = q.exchange,
+                        typeLabel = q.typeDisp ?: q.quoteType,
+                    )
+                }
+                if (items.isEmpty()) SearchResult.NoMatches else SearchResult.Success(items)
+            }
+        }.getOrElse { t ->
+            runCatching { Log.w("YahooPriceSource", "searchTickers($query) failed", t) }
+            SearchResult.Error(t.message ?: t.javaClass.simpleName)
         }
     }
 }

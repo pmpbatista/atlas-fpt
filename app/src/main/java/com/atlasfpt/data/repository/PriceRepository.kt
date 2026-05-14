@@ -4,6 +4,7 @@ import android.util.Log
 import com.atlasfpt.data.db.dao.FinancialDao
 import com.atlasfpt.data.network.PriceSource
 import com.atlasfpt.domain.model.QuoteResult
+import com.atlasfpt.domain.model.SearchResult
 import com.atlasfpt.domain.model.TickerQuote
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -47,6 +48,9 @@ class PriceRepository @Inject constructor(
 
     /** Always hits network — for the add-asset flow. Returns the raw QuoteResult. */
     suspend fun validateTicker(ticker: String): QuoteResult = source.fetchQuote(ticker)
+
+    /** Search-as-you-type — proxies to the underlying price source. */
+    suspend fun searchTickers(query: String): SearchResult = source.searchTickers(query)
 
     /**
      * Force-refreshes every tracked financial asset. Returns success/failure counts.
