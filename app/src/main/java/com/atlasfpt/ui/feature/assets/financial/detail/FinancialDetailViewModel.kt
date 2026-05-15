@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.atlasfpt.data.repository.PriceRepository
 import com.atlasfpt.data.repository.TransactionRepository
 import com.atlasfpt.data.settings.SettingsRepository
+import com.atlasfpt.domain.model.Dividend
 import com.atlasfpt.domain.model.FinancialAsset
 import com.atlasfpt.domain.model.FinancialAssetReturns
 import com.atlasfpt.domain.model.Transaction
 import com.atlasfpt.domain.usecase.ComputeFinancialReturnsUseCase
 import com.atlasfpt.domain.usecase.DeleteAssetUseCase
+import com.atlasfpt.domain.usecase.DeleteDividendUseCase
 import com.atlasfpt.domain.usecase.DeleteLotUseCase
 import com.atlasfpt.domain.usecase.GetFinancialAssetUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -42,6 +44,7 @@ class FinancialDetailViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val settingsRepository: SettingsRepository,
     private val computeReturns: ComputeFinancialReturnsUseCase,
+    private val deleteDividendUseCase: DeleteDividendUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(FinancialDetailUiState())
@@ -105,6 +108,19 @@ class FinancialDetailViewModel @Inject constructor(
                 }
             } catch (t: Throwable) {
                 _state.update { it.copy(errorMessage = "Couldn't delete lot. Try again.") }
+            }
+        }
+    }
+
+    fun deleteDividend(dividend: Dividend) {
+        viewModelScope.launch {
+            try {
+                deleteDividendUseCase(assetId, dividend)
+                val updated = getAsset(assetId)
+                val returns = updated?.let { computeReturns(it) }
+                _state.update { it.copy(asset = updated ?: it.asset, returns = returns ?: it.returns) }
+            } catch (t: Throwable) {
+                _state.update { it.copy(errorMessage = "Couldn't delete dividend. Try again.") }
             }
         }
     }

@@ -12,6 +12,7 @@ data class FinancialAsset(
     val latestPriceAt: Instant?,
     val notes: String?,
     val lots: List<FinancialLot>,
+    val dividends: List<Dividend> = emptyList(),
 ) {
     val totalQuantity: Double get() = lots.sumOf {
         if (it.type == LotType.SELL) -it.quantity else it.quantity

@@ -9,6 +9,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.atlasfpt.data.db.dao.AssetDao
 import com.atlasfpt.data.db.dao.CategoryDao
+import com.atlasfpt.data.db.dao.DividendDao
 import com.atlasfpt.data.db.dao.FinancialDao
 import com.atlasfpt.data.db.dao.FxRateDao
 import com.atlasfpt.data.db.dao.LabelDao
@@ -18,6 +19,7 @@ import com.atlasfpt.data.db.dao.RecurringRuleDao
 import com.atlasfpt.data.db.dao.TransactionDao
 import com.atlasfpt.data.db.entity.AssetEntity
 import com.atlasfpt.data.db.entity.CategoryEntity
+import com.atlasfpt.data.db.entity.DividendEntity
 import com.atlasfpt.data.db.entity.FinancialHoldingEntity
 import com.atlasfpt.data.db.entity.FinancialLotEntity
 import com.atlasfpt.data.db.entity.FxRateEntity
@@ -44,8 +46,9 @@ import com.atlasfpt.domain.model.CategoryType
         FinancialHoldingEntity::class,
         FinancialLotEntity::class,
         FxRateEntity::class,
+        DividendEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -60,6 +63,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun realEstateDao(): RealEstateDao
     abstract fun financialDao(): FinancialDao
     abstract fun fxRateDao(): FxRateDao
+    abstract fun dividendDao(): DividendDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -87,8 +91,16 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_5_6,
                     MIGRATION_6_7,
                     MIGRATION_7_8,
+                    MIGRATION_8_9,
                 )
                 .build()
+    }
+}
+
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `dividends` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `assetId` INTEGER NOT NULL, `payDate` TEXT NOT NULL, `grossAmount` REAL NOT NULL, `note` TEXT, FOREIGN KEY(`assetId`) REFERENCES `assets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_dividends_assetId` ON `dividends` (`assetId`)")
     }
 }
 

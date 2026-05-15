@@ -26,6 +26,7 @@ import androidx.navigation.navArgument
 import com.atlasfpt.ui.feature.addtransaction.AddTransactionScreen
 import com.atlasfpt.ui.feature.assets.financial.add.AddFinancialAssetScreen
 import com.atlasfpt.ui.feature.assets.financial.addlot.AddLotScreen
+import com.atlasfpt.ui.feature.assets.financial.dividend.AddDividendScreen
 import com.atlasfpt.ui.feature.assets.financial.detail.FinancialDetailScreen
 import com.atlasfpt.ui.feature.assets.list.AssetsListScreen
 import com.atlasfpt.ui.feature.assets.realestate.detail.RealEstateDetailScreen
@@ -61,6 +62,10 @@ sealed class Screen(val route: String) {
     object AddLot : Screen("add_lot/{assetId}?lotId={lotId}") {
         fun createRoute(assetId: Long) = "add_lot/$assetId"
         fun createRouteEdit(assetId: Long, lotId: Long) = "add_lot/$assetId?lotId=$lotId"
+    }
+    object AddDividend : Screen("add_dividend/{assetId}?dividendId={dividendId}") {
+        fun createRoute(assetId: Long) = "add_dividend/$assetId"
+        fun createRouteEdit(assetId: Long, dividendId: Long) = "add_dividend/$assetId?dividendId=$dividendId"
     }
 }
 
@@ -143,6 +148,19 @@ fun AppNavGraph() {
                 ),
             ) {
                 AddLotScreen(navController = navController)
+            }
+            composable(
+                route = Screen.AddDividend.route,
+                arguments = listOf(
+                    navArgument("assetId") { type = NavType.StringType },
+                    navArgument("dividendId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) {
+                AddDividendScreen(navController = navController)
             }
         }
     }

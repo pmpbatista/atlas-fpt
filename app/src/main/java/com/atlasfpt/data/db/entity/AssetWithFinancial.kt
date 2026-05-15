@@ -9,4 +9,6 @@ data class AssetWithFinancial(
     val holding: FinancialHoldingEntity?,
     @Relation(parentColumn = "id", entityColumn = "assetId")
     val lots: List<FinancialLotEntity>,
+    @Relation(parentColumn = "id", entityColumn = "assetId")
+    val dividends: List<DividendEntity> = emptyList(),
 )

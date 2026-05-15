@@ -13,6 +13,7 @@ package com.atlasfpt.domain.model
  */
 data class FinancialAssetReturns(
     val realizedPnl: Double,
+    val dividendIncome: Double,
     val unrealizedPnl: Double?,
     val totalReturn: Double?,
     val totalReturnPct: Double?,
