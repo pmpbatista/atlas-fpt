@@ -6,15 +6,18 @@ import androidx.lifecycle.viewModelScope
 import com.atlasfpt.data.repository.PriceRepository
 import com.atlasfpt.data.repository.TransactionRepository
 import com.atlasfpt.data.settings.SettingsRepository
+import com.atlasfpt.domain.model.ChartRange
 import com.atlasfpt.domain.model.Dividend
 import com.atlasfpt.domain.model.FinancialAsset
 import com.atlasfpt.domain.model.FinancialAssetReturns
+import com.atlasfpt.domain.model.PricePoint
 import com.atlasfpt.domain.model.Transaction
 import com.atlasfpt.domain.usecase.ComputeFinancialReturnsUseCase
 import com.atlasfpt.domain.usecase.DeleteAssetUseCase
 import com.atlasfpt.domain.usecase.DeleteDividendUseCase
 import com.atlasfpt.domain.usecase.DeleteLotUseCase
 import com.atlasfpt.domain.usecase.GetFinancialAssetUseCase
+import com.atlasfpt.domain.usecase.GetPriceHistoryUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +35,9 @@ data class FinancialDetailUiState(
     val errorMessage: String? = null,
     val linkedTransactions: List<Transaction> = emptyList(),
     val currencySymbol: String = "€",
+    val chartRange: ChartRange = ChartRange.SIX_MONTHS,
+    val priceHistory: List<PricePoint> = emptyList(),
+    val isChartLoading: Boolean = false,
 )
 
 @HiltViewModel
@@ -45,6 +51,7 @@ class FinancialDetailViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val computeReturns: ComputeFinancialReturnsUseCase,
     private val deleteDividendUseCase: DeleteDividendUseCase,
+    private val getPriceHistory: GetPriceHistoryUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(FinancialDetailUiState())
@@ -78,7 +85,24 @@ class FinancialDetailViewModel @Inject constructor(
             } else {
                 val returns = computeReturns(asset)
                 _state.update { it.copy(asset = asset, returns = returns, loadError = false) }
+                refreshChart()
             }
+        }
+    }
+
+    fun onChartRange(range: ChartRange) {
+        if (range == _state.value.chartRange) return
+        _state.update { it.copy(chartRange = range) }
+        refreshChart()
+    }
+
+    private fun refreshChart() {
+        val ticker = _state.value.asset?.ticker ?: return
+        val range = _state.value.chartRange
+        _state.update { it.copy(isChartLoading = true) }
+        viewModelScope.launch {
+            val history = runCatching { getPriceHistory(ticker, range) }.getOrDefault(emptyList())
+            _state.update { it.copy(isChartLoading = false, priceHistory = history) }
         }
     }
 

@@ -25,6 +25,8 @@ import com.atlasfpt.domain.model.FinancialAsset
 import com.atlasfpt.domain.model.FinancialAssetReturns
 import com.atlasfpt.domain.model.FinancialLot
 import com.atlasfpt.domain.model.LotType
+import com.atlasfpt.ui.component.ChartRangeChips
+import com.atlasfpt.ui.component.LineChart
 import com.atlasfpt.ui.component.LinkedTransactionsSection
 import com.atlasfpt.ui.navigation.Screen
 import com.atlasfpt.util.CurrencyFormatter
@@ -117,6 +119,38 @@ fun FinancialDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     item { AggregatedStatsCard(asset, state.returns) }
+                    item {
+                        Card {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "Price history",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    ChartRangeChips(
+                                        selected = state.chartRange,
+                                        onSelected = viewModel::onChartRange,
+                                    )
+                                }
+                                if (state.isChartLoading) {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().height(160.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) { CircularProgressIndicator() }
+                                } else if (state.priceHistory.isEmpty()) {
+                                    Text(
+                                        "No price data",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(vertical = 16.dp),
+                                    )
+                                } else {
+                                    LineChart(points = state.priceHistory)
+                                }
+                            }
+                        }
+                    }
                     item {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Lots (${asset.lots.size})", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))

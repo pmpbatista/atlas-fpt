@@ -1,12 +1,14 @@
 package com.atlasfpt.ui.feature.assets.list
 
 import app.cash.turbine.test
+import com.atlasfpt.data.repository.FxRatesRepository
 import com.atlasfpt.data.settings.AppSettings
 import com.atlasfpt.data.settings.SettingsRepository
 import com.atlasfpt.domain.model.AssetListItem
 import com.atlasfpt.domain.model.AssetType
 import com.atlasfpt.domain.model.TotalWealth
 import com.atlasfpt.domain.usecase.GetAssetsListUseCase
+import com.atlasfpt.domain.usecase.GetPortfolioValueHistoryUseCase
 import com.atlasfpt.domain.usecase.GetTotalWealthUseCase
 import com.atlasfpt.domain.usecase.RefreshPricesUseCase
 import com.atlasfpt.util.MainDispatcherRule
@@ -29,9 +31,22 @@ class AssetsListViewModelTest {
     private val getList: GetAssetsListUseCase = mockk()
     private val getTotal: GetTotalWealthUseCase = mockk()
     private val refreshPrices: RefreshPricesUseCase = mockk(relaxed = true)
+    private val getPortfolioHistory: GetPortfolioValueHistoryUseCase = mockk(relaxed = true)
+    private val fxRatesRepository: FxRatesRepository = mockk {
+        every { observeRates() } returns flowOf(emptyMap())
+    }
     private val settingsRepository: SettingsRepository = mockk {
         every { settings } returns MutableStateFlow(AppSettings())
     }
+
+    private fun newVm() = AssetsListViewModel(
+        getList = getList,
+        getTotal = getTotal,
+        refreshPrices = refreshPrices,
+        getPortfolioHistory = getPortfolioHistory,
+        fxRatesRepository = fxRatesRepository,
+        settingsRepository = settingsRepository,
+    )
 
     private fun item(id: Long, currency: String = "EUR") = AssetListItem(
         id = id,
@@ -46,7 +61,7 @@ class AssetsListViewModelTest {
     fun `empty list shows empty state`() = runTest {
         every { getList() } returns flowOf(emptyList())
         every { getTotal() } returns flowOf(TotalWealth(emptyMap(), emptyMap()))
-        val vm = AssetsListViewModel(getList, getTotal, refreshPrices, settingsRepository)
+        val vm = newVm()
 
         vm.uiState.test {
             val s = awaitItem()
@@ -62,7 +77,7 @@ class AssetsListViewModelTest {
         val items = listOf(item(1), item(2))
         every { getList() } returns flowOf(items)
         every { getTotal() } returns flowOf(TotalWealth(mapOf(AssetType.REAL_ESTATE to mapOf("EUR" to 200_000.0)), mapOf(AssetType.REAL_ESTATE to 2)))
-        val vm = AssetsListViewModel(getList, getTotal, refreshPrices, settingsRepository)
+        val vm = newVm()
 
         vm.uiState.test {
             // first emission may be initial empty, then loaded
@@ -82,7 +97,7 @@ class AssetsListViewModelTest {
         every { getTotal() } returns flowOf(
             TotalWealth(mapOf(AssetType.REAL_ESTATE to mapOf("EUR" to 100_000.0, "USD" to 50_000.0)), mapOf(AssetType.REAL_ESTATE to 2))
         )
-        val vm = AssetsListViewModel(getList, getTotal, refreshPrices, settingsRepository)
+        val vm = newVm()
 
         vm.uiState.test {
             var s = awaitItem()
