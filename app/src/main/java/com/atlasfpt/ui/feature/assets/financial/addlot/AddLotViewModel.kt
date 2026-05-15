@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.atlasfpt.domain.model.FinancialLot
+import com.atlasfpt.domain.model.LotType
 import com.atlasfpt.domain.usecase.AddLotUseCase
 import com.atlasfpt.domain.usecase.GetFinancialAssetUseCase
 import com.atlasfpt.domain.usecase.UpdateLotUseCase
@@ -34,6 +35,7 @@ data class AddLotUiState(
     val purchaseDate: LocalDate? = null,
     val quantity: String = "",
     val pricePerUnit: String = "",
+    val lotType: LotType = LotType.BUY,
     val formErrors: AddLotFormErrors = AddLotFormErrors(),
     val isLoading: Boolean = false,
     val isSaved: Boolean = false,
@@ -77,6 +79,7 @@ class AddLotViewModel @Inject constructor(
                         purchaseDate = lot.purchaseDate,
                         quantity = trimZeros(lot.quantity),
                         pricePerUnit = trimZeros(lot.pricePerUnit),
+                        lotType = lot.type,
                     )
                 } else {
                     current.copy(
@@ -95,6 +98,7 @@ class AddLotViewModel @Inject constructor(
     fun onPurchaseDate(v: LocalDate?) = _form.update { it.copy(purchaseDate = v) }
     fun onQuantity(v: String) = _form.update { it.copy(quantity = v) }
     fun onPricePerUnit(v: String) = _form.update { it.copy(pricePerUnit = v) }
+    fun onLotType(v: LotType) = _form.update { it.copy(lotType = v) }
     fun clearErrorMessage() = _form.update { it.copy(errorMessage = null) }
 
     fun save() {
@@ -105,12 +109,15 @@ class AddLotViewModel @Inject constructor(
             purchaseDate = s.purchaseDate!!,
             quantity = parseDecimal(s.quantity)!!,
             pricePerUnit = parseDecimal(s.pricePerUnit)!!,
+            type = s.lotType,
         )
         _form.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {
             try {
                 if (isEditMode) updateLotUseCase(assetId, lot) else addLotUseCase(assetId, lot)
                 _form.update { it.copy(isLoading = false, isSaved = true) }
+            } catch (t: IllegalArgumentException) {
+                _form.update { it.copy(isLoading = false, errorMessage = t.message ?: "Sale exceeds held shares.") }
             } catch (t: IllegalStateException) {
                 _form.update { it.copy(isLoading = false, errorMessage = "This asset no longer exists.") }
             } catch (t: Throwable) {

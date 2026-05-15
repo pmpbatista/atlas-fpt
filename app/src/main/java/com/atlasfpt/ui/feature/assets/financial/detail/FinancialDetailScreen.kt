@@ -21,8 +21,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.atlasfpt.domain.model.FinancialAsset
+import com.atlasfpt.domain.model.FinancialAssetReturns
 import com.atlasfpt.domain.model.FinancialLot
-import com.atlasfpt.domain.usecase.calculateAvgYearlyYield
+import com.atlasfpt.domain.model.LotType
 import com.atlasfpt.ui.component.LinkedTransactionsSection
 import com.atlasfpt.ui.navigation.Screen
 import com.atlasfpt.util.CurrencyFormatter
@@ -114,7 +115,7 @@ fun FinancialDetailScreen(
                     modifier = Modifier.fillMaxWidth().padding(padding).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    item { AggregatedStatsCard(asset) }
+                    item { AggregatedStatsCard(asset, state.returns) }
                     item {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Lots (${asset.lots.size})", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
@@ -183,7 +184,7 @@ fun FinancialDetailScreen(
 }
 
 @Composable
-private fun AggregatedStatsCard(asset: FinancialAsset) {
+private fun AggregatedStatsCard(asset: FinancialAsset, returns: FinancialAssetReturns?) {
     Card {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Current value", style = MaterialTheme.typography.labelMedium)
@@ -191,27 +192,45 @@ private fun AggregatedStatsCard(asset: FinancialAsset) {
                 asset.currentValue?.let { CurrencyFormatter.formatAbsoluteForCurrency(it, asset.currencyCode) } ?: "—",
                 style = MaterialTheme.typography.headlineMedium,
             )
-            Spacer(Modifier.height(4.dp))
-            asset.unrealizedPnl?.let { pnl ->
-                val pct = asset.unrealizedPnlPct ?: 0.0
-                val color = if (pnl >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                Text(
-                    "${formatSignedCurrency(pnl, asset.currencyCode)} (${formatPercent(pct * 100)})",
-                    color = color,
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
-            calculateAvgYearlyYield(asset.lots, asset.latestPrice)?.let { yld ->
-                val color = if (yld >= 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                Text("${formatPercent(yld * 100)} per year (CAGR)", color = color, style = MaterialTheme.typography.bodyMedium)
+            if (returns != null) {
+                Spacer(Modifier.height(8.dp))
+                ReturnsBlock(returns, asset.currencyCode)
             }
             Spacer(Modifier.height(4.dp))
+            val avg = returns?.avgCostPerRemainingShare ?: 0.0
+            val netQty = returns?.netQuantity ?: asset.totalQuantity
             Text(
-                "${formatQuantity(asset.totalQuantity)} units @ avg ${CurrencyFormatter.formatAbsoluteForCurrency(asset.avgCostPerUnit, asset.currencyCode)}",
+                "${formatQuantity(netQty)} units · avg ${CurrencyFormatter.formatAbsoluteForCurrency(avg, asset.currencyCode)}",
                 style = MaterialTheme.typography.bodySmall,
             )
             asset.latestPriceAt?.let { Text("Updated ${relativeTimeString(it.toEpochMilli())}", style = MaterialTheme.typography.bodySmall) }
         }
+    }
+}
+
+@Composable
+private fun ReturnsBlock(r: FinancialAssetReturns, currencyCode: String) {
+    Column {
+        StatRow("Realized P&L", formatSignedCurrency(r.realizedPnl, currencyCode), positive = r.realizedPnl >= 0)
+        r.unrealizedPnl?.let { up ->
+            StatRow("Unrealized P&L", formatSignedCurrency(up, currencyCode), positive = up >= 0)
+        }
+        r.totalReturn?.let { tr ->
+            val pct = r.totalReturnPct?.let { " (${formatPercent(it * 100)})" } ?: ""
+            StatRow("Total return", formatSignedCurrency(tr, currencyCode) + pct, positive = tr >= 0)
+        }
+        r.xirr?.let { xirr ->
+            StatRow("XIRR", "${formatPercent(xirr * 100)} per year", positive = xirr >= 0)
+        }
+    }
+}
+
+@Composable
+private fun StatRow(label: String, value: String, positive: Boolean) {
+    val color = if (positive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Text(value, color = color, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
@@ -224,29 +243,36 @@ private fun LotRow(
     onDelete: () -> Unit,
 ) {
     var sheetOpen by remember { mutableStateOf(false) }
+    val isSell = lot.type == LotType.SELL
     Card(modifier = Modifier.fillMaxWidth().clickable { sheetOpen = true }) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text("${lot.purchaseDate} · ${formatQuantity(lot.quantity)} @ ${CurrencyFormatter.formatAbsoluteForCurrency(lot.pricePerUnit, currencyCode)}",
-                style = MaterialTheme.typography.bodyMedium)
-            val cost = lot.quantity * lot.pricePerUnit
-            val cur = currentPrice?.let { lot.quantity * it }
-            val text = buildString {
-                append("Cost ${CurrencyFormatter.formatAbsoluteForCurrency(cost, currencyCode)}")
-                cur?.let {
-                    append(" · Now ${CurrencyFormatter.formatAbsoluteForCurrency(it, currencyCode)}")
-                    val pct = (it - cost) / cost
-                    append(" · ${formatPercent(pct * 100)}")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (isSell) {
+                    AssistChip(
+                        onClick = {},
+                        enabled = false,
+                        label = { Text("SELL") },
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
                 }
+                val signedQty = if (isSell) "−${formatQuantity(lot.quantity)}" else formatQuantity(lot.quantity)
+                Text(
+                    "${lot.purchaseDate} · $signedQty @ ${CurrencyFormatter.formatAbsoluteForCurrency(lot.pricePerUnit, currencyCode)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
-            Text(text, style = MaterialTheme.typography.bodySmall)
-            currentPrice?.let { cp ->
-                val years = ChronoUnit.DAYS.between(lot.purchaseDate, LocalDate.now()) / 365.25
-                if (years > 0 && lot.pricePerUnit > 0) {
-                    val ratio = cp / lot.pricePerUnit
-                    val annualized = if (ratio > 0) ratio.pow(1.0 / years) - 1 else -1.0
-                    Text("${formatPercent(annualized * 100)} per year", style = MaterialTheme.typography.bodySmall)
-                }
-            }
+            val notional = lot.quantity * lot.pricePerUnit
+            val label = if (isSell) "Sale proceeds" else "Cost"
+            val nowText = if (!isSell) {
+                currentPrice?.let {
+                    val now = lot.quantity * it
+                    " · Now ${CurrencyFormatter.formatAbsoluteForCurrency(now, currencyCode)} · ${formatPercent((now - notional) / notional * 100)}"
+                } ?: ""
+            } else ""
+            Text(
+                "$label ${CurrencyFormatter.formatAbsoluteForCurrency(notional, currencyCode)}$nowText",
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
     if (sheetOpen) {

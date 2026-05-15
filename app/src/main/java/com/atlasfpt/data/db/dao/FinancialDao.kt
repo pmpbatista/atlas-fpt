@@ -27,8 +27,14 @@ interface FinancialDao {
     @Query("SELECT COUNT(*) FROM financial_holdings WHERE ticker = :ticker LIMIT 1")
     suspend fun countByTicker(ticker: String): Int
 
-    @Query("SELECT COALESCE(SUM(quantity), 0.0) FROM financial_lots WHERE assetId = :assetId")
+    @Query("""
+        SELECT COALESCE(SUM(CASE WHEN lotType = 'BUY' THEN quantity ELSE -quantity END), 0.0)
+        FROM financial_lots WHERE assetId = :assetId
+    """)
     suspend fun sumLotQuantity(assetId: Long): Double
+
+    @Query("SELECT * FROM financial_lots WHERE assetId = :assetId ORDER BY purchaseDate ASC, id ASC")
+    suspend fun getAllLotsForAsset(assetId: Long): List<FinancialLotEntity>
 
     @Query("SELECT MIN(purchaseDate) FROM financial_lots WHERE assetId = :assetId")
     suspend fun earliestLotDate(assetId: Long): String?

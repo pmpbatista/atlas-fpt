@@ -64,6 +64,7 @@ class FinancialDetailViewModelTest {
         priceRepository = priceRepo,
         transactionRepository = transactionRepository,
         settingsRepository = settingsRepository,
+        computeReturns = com.atlasfpt.domain.usecase.ComputeFinancialReturnsUseCase(),
     )
 
     @Test fun `loads asset and computes equity`() = runTest {

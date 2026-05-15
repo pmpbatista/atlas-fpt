@@ -150,6 +150,7 @@ fun FinancialLotEntity.toDomain(): FinancialLot = FinancialLot(
     purchaseDate = purchaseDate,
     quantity = quantity,
     pricePerUnit = pricePerUnit,
+    type = lotType,
 )
 
 fun FinancialLot.toEntity(assetId: Long): FinancialLotEntity = FinancialLotEntity(
@@ -158,6 +159,7 @@ fun FinancialLot.toEntity(assetId: Long): FinancialLotEntity = FinancialLotEntit
     purchaseDate = purchaseDate,
     quantity = quantity,
     pricePerUnit = pricePerUnit,
+    lotType = type,
 )
 
 fun AssetWithFinancial.toFinancialDomain(): FinancialAsset {
