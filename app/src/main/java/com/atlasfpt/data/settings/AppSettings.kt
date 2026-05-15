@@ -1,5 +1,7 @@
 package com.atlasfpt.data.settings
 
+import com.atlasfpt.data.backup.BackupFrequency
+
 data class AppSettings(
     val currencySymbol: String = "€",
     val currencyCode: String = "EUR",
@@ -10,4 +12,10 @@ data class AppSettings(
      * Defaults to [currencyCode] when not explicitly set.
      */
     val displayCurrencyCode: String = "EUR",
+    val backupFolderUri: String? = null,
+    val backupScheduleEnabled: Boolean = false,
+    val backupFrequency: BackupFrequency = BackupFrequency.WEEKLY,
+    val backupRetentionCount: Int = 5,
+    val lastBackupAt: Long? = null,
+    val lastBackupFilename: String? = null,
 )

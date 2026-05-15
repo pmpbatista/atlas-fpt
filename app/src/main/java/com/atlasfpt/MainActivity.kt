@@ -8,20 +8,28 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.atlasfpt.data.backup.BackupScheduler
+import com.atlasfpt.data.settings.SettingsRepository
 import com.atlasfpt.data.worker.RecurringTransactionWorker
 import com.atlasfpt.data.worker.RefreshPricesWorker
 import com.atlasfpt.ui.navigation.AppNavGraph
 import com.atlasfpt.ui.theme.AtlasTheme
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject lateinit var backupScheduler: BackupScheduler
+    @Inject lateinit var settingsRepository: SettingsRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         scheduleRecurringWorker()
         schedulePriceRefreshWorker()
+        backupScheduler.apply(settingsRepository.settings.value)
 
         setContent {
             AtlasTheme {

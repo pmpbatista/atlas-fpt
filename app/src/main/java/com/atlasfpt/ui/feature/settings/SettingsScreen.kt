@@ -1,6 +1,9 @@
 package com.atlasfpt.ui.feature.settings
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,20 +11,30 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.CurrencyExchange
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,7 +46,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.atlasfpt.data.backup.BackupFrequency
 import com.atlasfpt.ui.navigation.Screen
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 private data class CurrencyOption(val symbol: String, val code: String, val label: String)
 
@@ -52,12 +69,26 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.settings.collectAsState()
     val fxRates by viewModel.fxRates.collectAsState()
+    val backupMessage by viewModel.backupMessage.collectAsState()
+    val backupInProgress by viewModel.backupInProgress.collectAsState()
     var showCurrencyPicker by remember { mutableStateOf(false) }
     var showDisplayCurrencyPicker by remember { mutableStateOf(false) }
+    var showBackupFrequencyPicker by remember { mutableStateOf(false) }
 
+    val folderPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree(),
+    ) { uri -> viewModel.setBackupFolderUri(uri) }
+
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(backupMessage) {
+        backupMessage?.let { snackbar.showSnackbar(it); viewModel.clearBackupMessage() }
+    }
+
+    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { scaffoldPadding ->
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(scaffoldPadding)
             .padding(horizontal = 0.dp)
     ) {
         Text(
@@ -185,6 +216,94 @@ fun SettingsScreen(
         )
 
         HorizontalDivider()
+
+        Text(
+            text = "Backup",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        )
+
+        SettingsRow(
+            icon = Icons.Default.Folder,
+            title = "Backup folder",
+            subtitle = settings.backupFolderUri?.let { displayFolderName(it) } ?: "Tap to pick a folder",
+            onClick = { folderPicker.launch(null) },
+        )
+
+        HorizontalDivider()
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Default.Backup, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Back up now", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    settings.lastBackupAt?.let { "Last: ${formatTimestamp(it)}" } ?: "No backups yet",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (backupInProgress) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+            } else {
+                Button(
+                    onClick = { viewModel.runBackupNow() },
+                    enabled = settings.backupFolderUri != null,
+                ) { Text("Run") }
+            }
+        }
+
+        HorizontalDivider()
+
+        SettingsToggleRow(
+            icon = Icons.Default.Schedule,
+            title = "Scheduled backup",
+            subtitle = settings.backupFrequency.label,
+            checked = settings.backupScheduleEnabled,
+            onCheckedChange = viewModel::setBackupScheduleEnabled,
+        )
+
+        if (settings.backupScheduleEnabled) {
+            SettingsRow(
+                icon = Icons.Default.Schedule,
+                title = "Frequency",
+                subtitle = settings.backupFrequency.label,
+                onClick = { showBackupFrequencyPicker = !showBackupFrequencyPicker },
+            )
+            if (showBackupFrequencyPicker) {
+                Column(modifier = Modifier.padding(start = 56.dp, end = 16.dp)) {
+                    BackupFrequency.values().forEach { f ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.setBackupFrequency(f)
+                                    showBackupFrequencyPicker = false
+                                }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(
+                                selected = settings.backupFrequency == f,
+                                onClick = {
+                                    viewModel.setBackupFrequency(f)
+                                    showBackupFrequencyPicker = false
+                                },
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(f.label, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            }
+        }
+
+        HorizontalDivider()
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
@@ -194,6 +313,17 @@ fun SettingsScreen(
             modifier = Modifier.padding(horizontal = 16.dp)
         )
     }
+    }
+}
+
+private fun displayFolderName(uriString: String): String {
+    val lastSegment = uriString.substringAfterLast('/').substringAfterLast("%3A")
+    return java.net.URLDecoder.decode(lastSegment, "UTF-8")
+}
+
+private fun formatTimestamp(millis: Long): String {
+    val zoned = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault())
+    return zoned.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
 }
 
 @Composable
