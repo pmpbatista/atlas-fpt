@@ -4,8 +4,10 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.atlasfpt.data.db.entity.CategoryEntity
+import com.atlasfpt.data.db.entity.LabelEntity
 import com.atlasfpt.data.db.entity.PersonEntity
 import com.atlasfpt.data.db.entity.TransactionEntity
+import com.atlasfpt.data.db.entity.TransactionLabelCrossRef
 import com.atlasfpt.data.db.entity.TransactionPersonCrossRef
 import com.atlasfpt.domain.model.CategoryType
 import com.atlasfpt.domain.model.TransactionType
@@ -63,5 +65,43 @@ class TransactionCascadeTest {
             0,
             db.personDao().countTransactions(personId),
         )
+    }
+
+    @Test
+    fun deletingTransactionCascadesLabelCrossRefs() = runTest {
+        val categoryId = db.categoryDao().insert(
+            CategoryEntity(name = "Test", iconRes = "icon", color = 0, type = CategoryType.EXPENSE)
+        )
+        val labelId = db.labelDao().insert(LabelEntity(name = "Work"))
+        val transactionEntity = TransactionEntity(
+            amount = 10.0,
+            type = TransactionType.EXPENSE,
+            categoryId = categoryId,
+            date = LocalDate.of(2026, 1, 1),
+        )
+        val transactionId = db.transactionDao().insert(transactionEntity)
+        db.transactionDao().insertCrossRef(
+            TransactionLabelCrossRef(transactionId = transactionId, labelId = labelId)
+        )
+
+        assertEquals(1, countLabelCrossRefs(labelId))
+
+        db.transactionDao().delete(transactionEntity.copy(id = transactionId))
+
+        assertEquals(
+            "FK CASCADE should remove the label cross-ref when the transaction is deleted",
+            0,
+            countLabelCrossRefs(labelId),
+        )
+    }
+
+    private fun countLabelCrossRefs(labelId: Long): Int {
+        db.openHelper.readableDatabase.query(
+            "SELECT COUNT(*) FROM transaction_label_cross_ref WHERE labelId = ?",
+            arrayOf<Any>(labelId),
+        ).use { cursor ->
+            cursor.moveToFirst()
+            return cursor.getInt(0)
+        }
     }
 }
