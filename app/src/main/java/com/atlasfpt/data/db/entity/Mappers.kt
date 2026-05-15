@@ -2,6 +2,7 @@ package com.atlasfpt.data.db.entity
 
 import com.atlasfpt.domain.model.AssetType
 import com.atlasfpt.domain.model.Category
+import com.atlasfpt.domain.model.Dividend
 import com.atlasfpt.domain.model.FinancialAsset
 import com.atlasfpt.domain.model.FinancialLot
 import com.atlasfpt.domain.model.Label
@@ -177,5 +178,21 @@ fun AssetWithFinancial.toFinancialDomain(): FinancialAsset {
         latestPriceAt = h.latestPriceAt?.let { Instant.ofEpochMilli(it) },
         notes = asset.notes,
         lots = lots.sortedBy { it.purchaseDate }.map { it.toDomain() },
+        dividends = dividends.sortedWith(compareBy({ it.payDate }, { it.id })).map { it.toDomain() },
     )
 }
+
+fun DividendEntity.toDomain(): Dividend = Dividend(
+    id = id,
+    payDate = payDate,
+    grossAmount = grossAmount,
+    note = note,
+)
+
+fun Dividend.toEntity(assetId: Long): DividendEntity = DividendEntity(
+    id = id,
+    assetId = assetId,
+    payDate = payDate,
+    grossAmount = grossAmount,
+    note = note,
+)

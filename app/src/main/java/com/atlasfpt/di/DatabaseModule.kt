@@ -4,6 +4,7 @@ import android.content.Context
 import com.atlasfpt.data.db.AppDatabase
 import com.atlasfpt.data.db.dao.AssetDao
 import com.atlasfpt.data.db.dao.CategoryDao
+import com.atlasfpt.data.db.dao.DividendDao
 import com.atlasfpt.data.db.dao.FinancialDao
 import com.atlasfpt.data.db.dao.FxRateDao
 import com.atlasfpt.data.db.dao.LabelDao
@@ -53,4 +54,7 @@ object DatabaseModule {
 
     @Provides
     fun provideFxRateDao(db: AppDatabase): FxRateDao = db.fxRateDao()
+
+    @Provides
+    fun provideDividendDao(db: AppDatabase): DividendDao = db.dividendDao()
 }

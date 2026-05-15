@@ -2,7 +2,6 @@ package com.atlasfpt.domain.usecase
 
 import com.atlasfpt.domain.model.FinancialAsset
 import com.atlasfpt.domain.model.FinancialAssetReturns
-import com.atlasfpt.domain.model.FinancialLot
 import com.atlasfpt.domain.model.LotType
 import com.atlasfpt.util.Xirr
 import java.time.LocalDate
@@ -43,17 +42,19 @@ class ComputeFinancialReturnsUseCase @Inject constructor() {
         val avgCostPerRemainingShare = if (netQuantity > 0) {
             pool.sumOf { it.qty * it.price } / netQuantity
         } else 0.0
+        val dividendIncome = asset.dividends.sumOf { it.grossAmount }
         val unrealizedPnl = asset.latestPrice?.let { price ->
             pool.sumOf { it.qty * (price - it.price) }
         }
-        val totalReturn = unrealizedPnl?.let { realized + it }
+        val totalReturn = unrealizedPnl?.let { realized + dividendIncome + it }
         val totalReturnPct = totalReturn?.let { tr ->
             if (totalInvested > 0) tr / totalInvested else null
         }
-        val xirr = computeXirr(lots, netQuantity, asset.latestPrice, today)
+        val xirr = computeXirr(asset, netQuantity, today)
 
         return FinancialAssetReturns(
             realizedPnl = realized,
+            dividendIncome = dividendIncome,
             unrealizedPnl = unrealizedPnl,
             totalReturn = totalReturn,
             totalReturnPct = totalReturnPct,
@@ -65,22 +66,24 @@ class ComputeFinancialReturnsUseCase @Inject constructor() {
     }
 
     private fun computeXirr(
-        lots: List<FinancialLot>,
+        asset: FinancialAsset,
         netQuantity: Double,
-        currentPrice: Double?,
         today: LocalDate,
     ): Double? {
-        if (lots.isEmpty()) return null
+        if (asset.lots.isEmpty() && asset.dividends.isEmpty()) return null
         val flows = mutableListOf<Pair<LocalDate, Double>>()
-        for (lot in lots) {
+        for (lot in asset.lots) {
             val signed = when (lot.type) {
                 LotType.BUY -> -lot.quantity * lot.pricePerUnit
                 LotType.SELL -> lot.quantity * lot.pricePerUnit
             }
             flows += lot.purchaseDate to signed
         }
-        if (netQuantity > 0 && currentPrice != null) {
-            flows += today to netQuantity * currentPrice
+        for (div in asset.dividends) {
+            flows += div.payDate to div.grossAmount
+        }
+        if (netQuantity > 0 && asset.latestPrice != null) {
+            flows += today to netQuantity * asset.latestPrice!!
         }
         return Xirr.solve(flows)
     }

@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.atlasfpt.domain.model.Dividend
 import com.atlasfpt.domain.model.FinancialAsset
 import com.atlasfpt.domain.model.FinancialAssetReturns
 import com.atlasfpt.domain.model.FinancialLot
@@ -133,6 +134,27 @@ fun FinancialDetailScreen(
                             onDelete = { lotPendingDelete = lot },
                         )
                     }
+                    item {
+                        Spacer(Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "Dividends (${asset.dividends.size})",
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = {
+                                navController.navigate(Screen.AddDividend.createRoute(asset.id))
+                            }) { Text("+ Add") }
+                        }
+                    }
+                    items(asset.dividends, key = { "div-${it.id}" }) { div ->
+                        DividendRow(
+                            dividend = div,
+                            currencyCode = asset.currencyCode,
+                            onEdit = { navController.navigate(Screen.AddDividend.createRouteEdit(asset.id, div.id)) },
+                            onDelete = { viewModel.deleteDividend(div) },
+                        )
+                    }
                     asset.notes?.takeIf { it.isNotBlank() }?.let { notes ->
                         item { Spacer(Modifier.height(8.dp)); Text("Notes", style = MaterialTheme.typography.titleSmall); Text(notes) }
                     }
@@ -212,6 +234,9 @@ private fun AggregatedStatsCard(asset: FinancialAsset, returns: FinancialAssetRe
 private fun ReturnsBlock(r: FinancialAssetReturns, currencyCode: String) {
     Column {
         StatRow("Realized P&L", formatSignedCurrency(r.realizedPnl, currencyCode), positive = r.realizedPnl >= 0)
+        if (r.dividendIncome != 0.0) {
+            StatRow("Dividends", formatSignedCurrency(r.dividendIncome, currencyCode), positive = r.dividendIncome >= 0)
+        }
         r.unrealizedPnl?.let { up ->
             StatRow("Unrealized P&L", formatSignedCurrency(up, currencyCode), positive = up >= 0)
         }
@@ -222,6 +247,36 @@ private fun ReturnsBlock(r: FinancialAssetReturns, currencyCode: String) {
         r.xirr?.let { xirr ->
             StatRow("XIRR", "${formatPercent(xirr * 100)} per year", positive = xirr >= 0)
         }
+    }
+}
+
+@Composable
+private fun DividendRow(
+    dividend: Dividend,
+    currencyCode: String,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var sheetOpen by remember { mutableStateOf(false) }
+    Card(modifier = Modifier.fillMaxWidth().clickable { sheetOpen = true }) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                "${dividend.payDate} · ${CurrencyFormatter.formatAbsoluteForCurrency(dividend.grossAmount, currencyCode)}",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            dividend.note?.takeIf { it.isNotBlank() }?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+    if (sheetOpen) {
+        AlertDialog(
+            onDismissRequest = { sheetOpen = false },
+            title = { Text("Dividend actions") },
+            text = { Text("Edit or delete this dividend?") },
+            confirmButton = { TextButton(onClick = { sheetOpen = false; onEdit() }) { Text("Edit") } },
+            dismissButton = { TextButton(onClick = { sheetOpen = false; onDelete() }) { Text("Delete") } },
+        )
     }
 }
 

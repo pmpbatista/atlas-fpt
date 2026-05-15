@@ -65,6 +65,9 @@ class FinancialDetailViewModelTest {
         transactionRepository = transactionRepository,
         settingsRepository = settingsRepository,
         computeReturns = com.atlasfpt.domain.usecase.ComputeFinancialReturnsUseCase(),
+        deleteDividendUseCase = com.atlasfpt.domain.usecase.DeleteDividendUseCase(
+            io.mockk.mockk(relaxed = true)
+        ),
     )
 
     @Test fun `loads asset and computes equity`() = runTest {
