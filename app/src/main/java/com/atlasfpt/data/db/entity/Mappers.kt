@@ -109,7 +109,8 @@ fun AssetWithRealEstate.toRealEstateDomain(): RealEstateAsset {
         council = d.council,
         parish = d.parish,
         sizeM2 = d.sizeM2,
-        energyRating = d.energyRating
+        energyRating = d.energyRating,
+        photoUri = d.photoUri,
     )
 }
 
@@ -140,7 +141,8 @@ fun RealEstateAsset.toDetailsEntity(assetId: Long): RealEstateDetailsEntity =
         council = council,
         parish = parish,
         sizeM2 = sizeM2,
-        energyRating = energyRating
+        energyRating = energyRating,
+        photoUri = photoUri,
     )
 
 fun FinancialLotEntity.toDomain(): FinancialLot = FinancialLot(
