@@ -5,6 +5,7 @@ import com.atlasfpt.data.db.AppDatabase
 import com.atlasfpt.data.db.dao.AssetDao
 import com.atlasfpt.data.db.dao.CategoryDao
 import com.atlasfpt.data.db.dao.FinancialDao
+import com.atlasfpt.data.db.dao.FxRateDao
 import com.atlasfpt.data.db.dao.LabelDao
 import com.atlasfpt.data.db.dao.PersonDao
 import com.atlasfpt.data.db.dao.RealEstateDao
@@ -49,4 +50,7 @@ object DatabaseModule {
 
     @Provides
     fun provideFinancialDao(db: AppDatabase): FinancialDao = db.financialDao()
+
+    @Provides
+    fun provideFxRateDao(db: AppDatabase): FxRateDao = db.fxRateDao()
 }

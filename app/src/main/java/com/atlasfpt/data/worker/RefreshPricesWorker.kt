@@ -7,6 +7,7 @@ import androidx.work.WorkerParameters
 import com.atlasfpt.data.repository.PriceRepository
 import com.atlasfpt.data.settings.SettingsRepository
 import com.atlasfpt.domain.usecase.RefreshEuriborUseCase
+import com.atlasfpt.domain.usecase.RefreshFxRatesUseCase
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
@@ -17,6 +18,7 @@ class RefreshPricesWorker @AssistedInject constructor(
     private val priceRepository: PriceRepository,
     private val settingsRepository: SettingsRepository,
     private val refreshEuribor: RefreshEuriborUseCase,
+    private val refreshFxRates: RefreshFxRatesUseCase,
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
@@ -28,8 +30,8 @@ class RefreshPricesWorker @AssistedInject constructor(
             if (result.succeeded > 0) {
                 settingsRepository.setLastPriceRefreshAt(System.currentTimeMillis())
             }
-            // Run Euribor refresh independently — failures inside don't fail the worker.
             runCatching { refreshEuribor() }
+            runCatching { refreshFxRates() }
             when {
                 result.failed == 0 -> Result.success()
                 result.succeeded > 0 -> Result.success()

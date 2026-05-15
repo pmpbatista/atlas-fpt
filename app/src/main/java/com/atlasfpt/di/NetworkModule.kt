@@ -1,10 +1,13 @@
 package com.atlasfpt.di
 
 import com.atlasfpt.data.network.EcbDataApi
+import com.atlasfpt.data.network.EcbFxRatesApi
 import com.atlasfpt.data.network.EuriborSource
+import com.atlasfpt.data.network.FxRatesSource
 import com.atlasfpt.data.network.PriceSource
 import com.atlasfpt.data.network.YahooFinanceApi
 import com.atlasfpt.data.network.impl.EcbEuriborSource
+import com.atlasfpt.data.network.impl.EcbFxRatesSource
 import com.atlasfpt.data.network.impl.YahooPriceSource
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import dagger.Binds
@@ -27,6 +30,7 @@ object NetworkModule {
     private const val USER_AGENT = "Mozilla/5.0 (compatible; Atlas/1.0)"
     private const val YAHOO_BASE_URL = "https://query1.finance.yahoo.com/"
     private const val ECB_BASE_URL = "https://data-api.ecb.europa.eu/"
+    private const val ECB_FX_BASE_URL = "https://www.ecb.europa.eu/"
 
     @Provides
     @Singleton
@@ -76,6 +80,20 @@ object NetworkModule {
     @Singleton
     fun provideEcbDataApi(@Named("ecb") retrofit: Retrofit): EcbDataApi =
         retrofit.create(EcbDataApi::class.java)
+
+    @Provides
+    @Singleton
+    @Named("ecbFx")
+    fun provideEcbFxRetrofit(client: OkHttpClient, json: Json): Retrofit = Retrofit.Builder()
+        .baseUrl(ECB_FX_BASE_URL)
+        .client(client)
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build()
+
+    @Provides
+    @Singleton
+    fun provideEcbFxRatesApi(@Named("ecbFx") retrofit: Retrofit): EcbFxRatesApi =
+        retrofit.create(EcbFxRatesApi::class.java)
 }
 
 @Module
@@ -88,4 +106,8 @@ abstract class NetworkBindings {
     @Binds
     @Singleton
     abstract fun bindEuriborSource(impl: EcbEuriborSource): EuriborSource
+
+    @Binds
+    @Singleton
+    abstract fun bindFxRatesSource(impl: EcbFxRatesSource): FxRatesSource
 }

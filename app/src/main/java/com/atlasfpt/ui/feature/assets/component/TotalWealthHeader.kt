@@ -28,17 +28,52 @@ fun TotalWealthHeader(
     if (total.isEmpty) return
     Column(modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
         Text("Net wealth", style = MaterialTheme.typography.labelMedium)
-        total.byCurrency.forEach { (code, value) ->
+
+        val converted = total.totalInDisplayCurrency
+        if (converted != null && total.isMixedCurrency) {
             Text(
-                CurrencyFormatter.formatAbsoluteForCurrency(value, code),
+                CurrencyFormatter.formatAbsoluteForCurrency(converted, total.displayCurrencyCode),
                 style = MaterialTheme.typography.headlineMedium
             )
+            total.byCurrency.forEach { (code, value) ->
+                Text(
+                    CurrencyFormatter.formatAbsoluteForCurrency(value, code),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            total.byCurrency.forEach { (code, value) ->
+                Text(
+                    CurrencyFormatter.formatAbsoluteForCurrency(value, code),
+                    style = MaterialTheme.typography.headlineMedium
+                )
+            }
         }
+
         val subtitle = if (total.isMixedCurrency)
             "Across ${total.assetCount} assets · mixed currencies"
         else
             "Across ${total.assetCount} assets"
         Text(subtitle, style = MaterialTheme.typography.bodySmall)
+
+        if (total.isMixedCurrency) {
+            val fxAt = total.fxFetchedAt
+            val fxLine = when {
+                converted != null && fxAt != null ->
+                    "FX as of ${formatRelativeAge(fxAt)}"
+                converted == null ->
+                    "FX rates unavailable — refresh prices to update"
+                else -> null
+            }
+            if (fxLine != null) {
+                Text(
+                    fxLine,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
 
         if (lastRefreshAt != null) {
             Text(
