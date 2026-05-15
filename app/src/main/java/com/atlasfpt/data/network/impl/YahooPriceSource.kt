@@ -4,11 +4,15 @@ import android.util.Log
 import com.atlasfpt.data.network.ChartResponse
 import com.atlasfpt.data.network.PriceSource
 import com.atlasfpt.data.network.YahooFinanceApi
+import com.atlasfpt.domain.model.ChartRange
+import com.atlasfpt.domain.model.PricePoint
 import com.atlasfpt.domain.model.QuoteResult
 import com.atlasfpt.domain.model.SearchResult
 import com.atlasfpt.domain.model.TickerQuote
 import com.atlasfpt.domain.model.TickerSearchResult
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -82,6 +86,25 @@ class YahooPriceSource @Inject constructor(
         }.getOrElse { t ->
             runCatching { Log.w("YahooPriceSource", "searchTickers($query) failed", t) }
             SearchResult.Error(t.message ?: t.javaClass.simpleName)
+        }
+    }
+
+    override suspend fun fetchHistory(ticker: String, range: ChartRange): List<PricePoint> {
+        return runCatching {
+            val response = api.getChart(ticker, interval = range.yahooInterval, range = range.yahooRange)
+            if (!response.isSuccessful) return emptyList()
+            val body: ChartResponse = response.body() ?: return emptyList()
+            val result = body.chart.result?.firstOrNull() ?: return emptyList()
+            val timestamps = result.timestamp ?: return emptyList()
+            val closes = result.indicators?.quote?.firstOrNull()?.close ?: return emptyList()
+            timestamps.zip(closes).mapNotNull { (t, c) ->
+                val price = c ?: return@mapNotNull null
+                val date = Instant.ofEpochSecond(t).atZone(ZoneId.systemDefault()).toLocalDate()
+                PricePoint(date = date, price = price)
+            }
+        }.getOrElse { t ->
+            runCatching { Log.w("YahooPriceSource", "fetchHistory($ticker) failed", t) }
+            emptyList()
         }
     }
 }

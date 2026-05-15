@@ -1,6 +1,5 @@
 package com.atlasfpt.data.network
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** Top-level Yahoo /v8/finance/chart response. We only deserialize the fields we use. */
@@ -18,6 +17,8 @@ data class Chart(
 @Serializable
 data class ChartResult(
     val meta: ChartMeta,
+    val timestamp: List<Long>? = null,
+    val indicators: ChartIndicators? = null,
 )
 
 @Serializable
@@ -28,6 +29,16 @@ data class ChartMeta(
     val longName: String? = null,
     val regularMarketPrice: Double? = null,
     val regularMarketTime: Long? = null,
+)
+
+@Serializable
+data class ChartIndicators(
+    val quote: List<ChartQuote>? = null,
+)
+
+@Serializable
+data class ChartQuote(
+    val close: List<Double?>? = null,
 )
 
 @Serializable

@@ -68,6 +68,9 @@ class FinancialDetailViewModelTest {
         deleteDividendUseCase = com.atlasfpt.domain.usecase.DeleteDividendUseCase(
             io.mockk.mockk(relaxed = true)
         ),
+        getPriceHistory = com.atlasfpt.domain.usecase.GetPriceHistoryUseCase(
+            io.mockk.mockk(relaxed = true)
+        ),
     )
 
     @Test fun `loads asset and computes equity`() = runTest {

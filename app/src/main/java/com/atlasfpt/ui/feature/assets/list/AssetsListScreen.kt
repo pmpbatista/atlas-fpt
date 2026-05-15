@@ -33,10 +33,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.atlasfpt.domain.model.AssetType
+import com.atlasfpt.ui.component.ChartRangeChips
+import com.atlasfpt.ui.component.LineChart
 import com.atlasfpt.ui.feature.assets.component.AssetListRow
 import com.atlasfpt.ui.feature.assets.component.TotalWealthHeader
 import com.atlasfpt.ui.feature.assets.typepicker.AssetTypePickerSheet
 import com.atlasfpt.ui.navigation.Screen
+import androidx.compose.material3.Card
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,6 +102,40 @@ fun AssetsListScreen(
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
                 item { TotalWealthHeader(total = state.total, lastRefreshAt = state.settings.lastPriceRefreshAt) }
+                if (state.hasFinancial) {
+                    item {
+                        Card(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "Portfolio value",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    ChartRangeChips(
+                                        selected = state.chartRange,
+                                        onSelected = viewModel::onChartRange,
+                                    )
+                                }
+                                if (state.isChartLoading) {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().height(160.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) { CircularProgressIndicator() }
+                                } else if (state.portfolioHistory.isEmpty()) {
+                                    Text(
+                                        "No history yet",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(vertical = 16.dp),
+                                    )
+                                } else {
+                                    LineChart(points = state.portfolioHistory)
+                                }
+                            }
+                        }
+                    }
+                }
                 items(state.items, key = { it.id }) { asset ->
                     AssetListRow(
                         item = asset,

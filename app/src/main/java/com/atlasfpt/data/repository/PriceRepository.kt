@@ -3,6 +3,8 @@ package com.atlasfpt.data.repository
 import android.util.Log
 import com.atlasfpt.data.db.dao.FinancialDao
 import com.atlasfpt.data.network.PriceSource
+import com.atlasfpt.domain.model.ChartRange
+import com.atlasfpt.domain.model.PricePoint
 import com.atlasfpt.domain.model.QuoteResult
 import com.atlasfpt.domain.model.SearchResult
 import com.atlasfpt.domain.model.TickerQuote
@@ -48,6 +50,10 @@ class PriceRepository @Inject constructor(
 
     /** Always hits network — for the add-asset flow. Returns the raw QuoteResult. */
     suspend fun validateTicker(ticker: String): QuoteResult = source.fetchQuote(ticker)
+
+    /** Fetches price history for a ticker over [range]. Returns an empty list on failure. */
+    suspend fun fetchHistory(ticker: String, range: ChartRange): List<PricePoint> =
+        withContext(Dispatchers.IO) { source.fetchHistory(ticker, range) }
 
     /** Search-as-you-type — proxies to the underlying price source. */
     suspend fun searchTickers(query: String): SearchResult = source.searchTickers(query)
