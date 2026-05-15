@@ -2,15 +2,22 @@ package com.atlasfpt.domain.usecase
 
 import app.cash.turbine.test
 import com.atlasfpt.data.repository.AssetRepository
+import com.atlasfpt.data.repository.FxRatesRepository
+import com.atlasfpt.data.settings.AppSettings
+import com.atlasfpt.data.settings.SettingsRepository
 import com.atlasfpt.domain.model.AssetListItem
 import com.atlasfpt.domain.model.AssetType
+import com.atlasfpt.domain.model.FxRate
 import com.atlasfpt.util.MainDispatcherRule
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -21,6 +28,8 @@ class GetTotalWealthUseCaseTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repo: AssetRepository = mockk()
+    private val fxRepo: FxRatesRepository = mockk()
+    private val settingsRepo: SettingsRepository = mockk()
 
     private fun item(
         id: Long,
@@ -36,8 +45,17 @@ class GetTotalWealthUseCaseTest {
         outstandingDebt = outstandingDebt
     )
 
-    private fun useCase(items: List<AssetListItem>) = GetTotalWealthUseCase(repo).also {
+    private fun useCase(
+        items: List<AssetListItem>,
+        rates: Map<String, FxRate> = emptyMap(),
+        displayCurrency: String = "EUR",
+    ): GetTotalWealthUseCase {
         every { repo.observeAssetList() } returns flowOf(items)
+        every { fxRepo.observeRates() } returns flowOf(rates)
+        every { settingsRepo.settings } returns MutableStateFlow(
+            AppSettings(displayCurrencyCode = displayCurrency)
+        )
+        return GetTotalWealthUseCase(repo, fxRepo, settingsRepo, ConvertCurrencyUseCase())
     }
 
     @Test
@@ -46,7 +64,7 @@ class GetTotalWealthUseCaseTest {
             val w = awaitItem()
             assertTrue(w.isEmpty)
             assertEquals(0, w.assetCount)
-            awaitComplete()
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -57,7 +75,7 @@ class GetTotalWealthUseCaseTest {
             assertEquals(100_000.0, w.byCurrency["EUR"]!!, 0.0001)
             assertEquals(1, w.assetCount)
             assertFalse(w.isMixedCurrency)
-            awaitComplete()
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -66,7 +84,7 @@ class GetTotalWealthUseCaseTest {
         useCase(listOf(item(1, 300_000.0, outstandingDebt = 100_000.0)))().test {
             val w = awaitItem()
             assertEquals(200_000.0, w.byCurrency["EUR"]!!, 0.0001)
-            awaitComplete()
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -79,7 +97,7 @@ class GetTotalWealthUseCaseTest {
             val w = awaitItem()
             assertEquals(250_000.0, w.byCurrency["EUR"]!!, 0.0001)
             assertEquals(2, w.assetCount)
-            awaitComplete()
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -94,7 +112,7 @@ class GetTotalWealthUseCaseTest {
             assertEquals(50_000.0, w.byCurrency["USD"]!!, 0.0001)
             assertTrue(w.isMixedCurrency)
             assertEquals(2, w.assetCount)
-            awaitComplete()
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -103,7 +121,7 @@ class GetTotalWealthUseCaseTest {
         useCase(listOf(item(1, 200_000.0, outstandingDebt = null)))().test {
             val w = awaitItem()
             assertEquals(200_000.0, w.byCurrency["EUR"]!!, 0.0001)
-            awaitComplete()
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -112,7 +130,7 @@ class GetTotalWealthUseCaseTest {
         useCase(listOf(item(1, 100_000.0, outstandingDebt = 150_000.0)))().test {
             val w = awaitItem()
             assertEquals(-50_000.0, w.byCurrency["EUR"]!!, 0.0001)
-            awaitComplete()
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -129,7 +147,7 @@ class GetTotalWealthUseCaseTest {
             assertEquals(2, w.assetCount)
             assertTrue(w.hasType(AssetType.REAL_ESTATE))
             assertTrue(w.hasType(AssetType.FINANCIAL))
-            awaitComplete()
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -140,7 +158,46 @@ class GetTotalWealthUseCaseTest {
             assertTrue(w.hasType(AssetType.REAL_ESTATE))
             assertFalse(w.hasType(AssetType.FINANCIAL))
             assertEquals(emptyMap<String, Double>(), w.byCurrencyForType(AssetType.FINANCIAL))
-            awaitComplete()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `mixed currency with rates converts grand total to display currency`() = runTest {
+        val rates = mapOf(
+            "USD" to FxRate("USD", unitsPerEur = 1.10, fetchedAt = 1_000L),
+        )
+        useCase(
+            items = listOf(
+                item(1, 100_000.0, currencyCode = "EUR"),
+                item(2, 11_000.0, currencyCode = "USD"),
+            ),
+            rates = rates,
+            displayCurrency = "EUR",
+        )().test {
+            val w = awaitItem()
+            assertNotNull(w.totalInDisplayCurrency)
+            assertEquals(110_000.0, w.totalInDisplayCurrency!!, 0.0001) // 100k EUR + 11k USD / 1.10 = 110k EUR
+            assertEquals("EUR", w.displayCurrencyCode)
+            assertEquals(1_000L, w.fxFetchedAt)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `mixed currency without rate hides converted total`() = runTest {
+        useCase(
+            items = listOf(
+                item(1, 100_000.0, currencyCode = "EUR"),
+                item(2, 50_000.0, currencyCode = "USD"),
+            ),
+            rates = emptyMap(),
+            displayCurrency = "EUR",
+        )().test {
+            val w = awaitItem()
+            assertNull(w.totalInDisplayCurrency)
+            assertNull(w.fxFetchedAt)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 }

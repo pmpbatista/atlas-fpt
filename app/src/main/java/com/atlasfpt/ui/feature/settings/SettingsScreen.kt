@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.CurrencyExchange
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.HorizontalDivider
@@ -50,7 +51,9 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsState()
+    val fxRates by viewModel.fxRates.collectAsState()
     var showCurrencyPicker by remember { mutableStateOf(false) }
+    var showDisplayCurrencyPicker by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -103,6 +106,61 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(option.label, style = MaterialTheme.typography.bodyLarge)
                     }
+                }
+            }
+        }
+
+        HorizontalDivider()
+
+        val displayCurrencySubtitle = buildString {
+            append(settings.displayCurrencyCode)
+            val fetched = fxRates.values.minByOrNull { it.fetchedAt }?.fetchedAt
+            if (fetched != null) {
+                append(" · FX as of ")
+                append(formatShortDate(fetched))
+            } else if (settings.displayCurrencyCode != settings.currencyCode) {
+                append(" · FX rates not yet downloaded")
+            }
+        }
+        SettingsRow(
+            icon = Icons.Default.CurrencyExchange,
+            title = "Display currency",
+            subtitle = displayCurrencySubtitle,
+            onClick = { showDisplayCurrencyPicker = !showDisplayCurrencyPicker }
+        )
+
+        if (showDisplayCurrencyPicker) {
+            val availableCodes = (listOf("EUR") + fxRates.keys).distinct().sorted()
+            Column(modifier = Modifier.padding(start = 56.dp, end = 16.dp)) {
+                availableCodes.forEach { code ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                viewModel.setDisplayCurrencyCode(code)
+                                showDisplayCurrencyPicker = false
+                            }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = settings.displayCurrencyCode == code,
+                            onClick = {
+                                viewModel.setDisplayCurrencyCode(code)
+                                showDisplayCurrencyPicker = false
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(code, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+                if (availableCodes.size == 1) {
+                    Text(
+                        "Refresh prices on the Assets screen to download FX rates from the ECB.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
                 }
             }
         }
@@ -167,6 +225,12 @@ private fun SettingsRow(
             )
         }
     }
+}
+
+private fun formatShortDate(millis: Long): String {
+    val instant = java.time.Instant.ofEpochMilli(millis)
+    val date = instant.atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+    return date.toString()
 }
 
 @Composable

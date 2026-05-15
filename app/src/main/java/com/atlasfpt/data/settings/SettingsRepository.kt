@@ -16,14 +16,18 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
     private val _settings = MutableStateFlow(loadSettings())
     val settings: StateFlow<AppSettings> = _settings.asStateFlow()
 
-    private fun loadSettings() = AppSettings(
-        currencySymbol = prefs.getString("currency_symbol", "€") ?: "€",
-        currencyCode = prefs.getString("currency_code", "EUR") ?: "EUR",
-        backgroundRefreshEnabled = prefs.getBoolean("bg_refresh_enabled", true),
-        lastPriceRefreshAt = if (prefs.contains("last_price_refresh_at"))
-            prefs.getLong("last_price_refresh_at", 0L)
-        else null,
-    )
+    private fun loadSettings(): AppSettings {
+        val currencyCode = prefs.getString("currency_code", "EUR") ?: "EUR"
+        return AppSettings(
+            currencySymbol = prefs.getString("currency_symbol", "€") ?: "€",
+            currencyCode = currencyCode,
+            backgroundRefreshEnabled = prefs.getBoolean("bg_refresh_enabled", true),
+            lastPriceRefreshAt = if (prefs.contains("last_price_refresh_at"))
+                prefs.getLong("last_price_refresh_at", 0L)
+            else null,
+            displayCurrencyCode = prefs.getString("display_currency_code", currencyCode) ?: currencyCode,
+        )
+    }
 
     fun updateCurrency(symbol: String, code: String) {
         prefs.edit()
@@ -40,6 +44,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext private val con
 
     fun setLastPriceRefreshAt(millis: Long) {
         prefs.edit().putLong("last_price_refresh_at", millis).apply()
+        _settings.value = loadSettings()
+    }
+
+    fun setDisplayCurrencyCode(code: String) {
+        prefs.edit().putString("display_currency_code", code).apply()
         _settings.value = loadSettings()
     }
 }
