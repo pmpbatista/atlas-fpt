@@ -7,4 +7,5 @@ data class FinancialLot(
     val purchaseDate: LocalDate,
     val quantity: Double,
     val pricePerUnit: Double,
+    val type: LotType = LotType.BUY,
 )

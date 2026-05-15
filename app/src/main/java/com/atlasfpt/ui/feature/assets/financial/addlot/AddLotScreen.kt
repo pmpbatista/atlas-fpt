@@ -12,9 +12,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.atlasfpt.domain.model.LotType
 import com.atlasfpt.ui.component.DatePickerField
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun AddLotScreen(
     navController: NavController,
@@ -32,7 +33,13 @@ fun AddLotScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
-                title = { Text(if (state.isEditMode) "Edit lot · ${state.ticker}" else "Add lot · ${state.ticker}") },
+                title = {
+                    val prefix = if (state.isEditMode) "Edit" else when (state.lotType) {
+                        LotType.BUY -> "Add buy"
+                        LotType.SELL -> "Record sale"
+                    }
+                    Text("$prefix · ${state.ticker}")
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -54,6 +61,18 @@ fun AddLotScreen(
             modifier = Modifier.fillMaxWidth().padding(padding).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = state.lotType == LotType.BUY,
+                    onClick = { viewModel.onLotType(LotType.BUY) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                ) { Text("Buy") }
+                SegmentedButton(
+                    selected = state.lotType == LotType.SELL,
+                    onClick = { viewModel.onLotType(LotType.SELL) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                ) { Text("Sell") }
+            }
             DatePickerField(
                 label = "Date",
                 value = state.purchaseDate,
@@ -61,7 +80,11 @@ fun AddLotScreen(
                 error = state.formErrors.purchaseDate,
             )
             NumberRow("Quantity", state.quantity, state.formErrors.quantity, viewModel::onQuantity)
-            NumberRow("Price/share (${state.currencyCode})", state.pricePerUnit, state.formErrors.pricePerUnit, viewModel::onPricePerUnit)
+            val priceLabel = when (state.lotType) {
+                LotType.BUY -> "Price/share (${state.currencyCode})"
+                LotType.SELL -> "Sale price/share (${state.currencyCode})"
+            }
+            NumberRow(priceLabel, state.pricePerUnit, state.formErrors.pricePerUnit, viewModel::onPricePerUnit)
         }
     }
 }

@@ -45,7 +45,7 @@ import com.atlasfpt.domain.model.CategoryType
         FinancialLotEntity::class,
         FxRateEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -86,6 +86,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_4_5,
                     MIGRATION_5_6,
                     MIGRATION_6_7,
+                    MIGRATION_7_8,
                 )
                 .build()
     }
@@ -94,6 +95,12 @@ abstract class AppDatabase : RoomDatabase() {
 val MIGRATION_6_7 = object : Migration(6, 7) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("CREATE TABLE IF NOT EXISTS `fx_rates` (`currencyCode` TEXT NOT NULL, `unitsPerEur` REAL NOT NULL, `fetchedAt` INTEGER NOT NULL, PRIMARY KEY(`currencyCode`))")
+    }
+}
+
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `financial_lots` ADD COLUMN `lotType` TEXT NOT NULL DEFAULT 'BUY'")
     }
 }
 

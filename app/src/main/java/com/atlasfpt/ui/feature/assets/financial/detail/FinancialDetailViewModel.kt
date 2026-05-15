@@ -7,7 +7,9 @@ import com.atlasfpt.data.repository.PriceRepository
 import com.atlasfpt.data.repository.TransactionRepository
 import com.atlasfpt.data.settings.SettingsRepository
 import com.atlasfpt.domain.model.FinancialAsset
+import com.atlasfpt.domain.model.FinancialAssetReturns
 import com.atlasfpt.domain.model.Transaction
+import com.atlasfpt.domain.usecase.ComputeFinancialReturnsUseCase
 import com.atlasfpt.domain.usecase.DeleteAssetUseCase
 import com.atlasfpt.domain.usecase.DeleteLotUseCase
 import com.atlasfpt.domain.usecase.GetFinancialAssetUseCase
@@ -21,6 +23,7 @@ import javax.inject.Inject
 
 data class FinancialDetailUiState(
     val asset: FinancialAsset? = null,
+    val returns: FinancialAssetReturns? = null,
     val loadError: Boolean = false,
     val isRefreshing: Boolean = false,
     val isDeleted: Boolean = false,
@@ -38,6 +41,7 @@ class FinancialDetailViewModel @Inject constructor(
     private val priceRepository: PriceRepository,
     private val transactionRepository: TransactionRepository,
     private val settingsRepository: SettingsRepository,
+    private val computeReturns: ComputeFinancialReturnsUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(FinancialDetailUiState())
@@ -66,8 +70,12 @@ class FinancialDetailViewModel @Inject constructor(
     private fun loadAsset() {
         viewModelScope.launch {
             val asset = runCatching { getAsset(assetId) }.getOrNull()
-            if (asset == null) _state.update { it.copy(loadError = true) }
-            else _state.update { it.copy(asset = asset, loadError = false) }
+            if (asset == null) {
+                _state.update { it.copy(loadError = true) }
+            } else {
+                val returns = computeReturns(asset)
+                _state.update { it.copy(asset = asset, returns = returns, loadError = false) }
+            }
         }
     }
 
@@ -76,9 +84,11 @@ class FinancialDetailViewModel @Inject constructor(
         _state.update { it.copy(isRefreshing = true) }
         viewModelScope.launch {
             runCatching { priceRepository.getQuote(ticker, force = true) }
-            // Re-load to pick up persisted price update
             val updated = runCatching { getAsset(assetId) }.getOrNull()
-            _state.update { it.copy(isRefreshing = false, asset = updated ?: it.asset) }
+            val returns = updated?.let { computeReturns(it) }
+            _state.update {
+                it.copy(isRefreshing = false, asset = updated ?: it.asset, returns = returns ?: it.returns)
+            }
         }
     }
 
@@ -90,7 +100,8 @@ class FinancialDetailViewModel @Inject constructor(
                     _state.update { it.copy(isDeleted = true) }
                 } else {
                     val updated = getAsset(assetId)
-                    _state.update { it.copy(asset = updated ?: it.asset) }
+                    val returns = updated?.let { computeReturns(it) }
+                    _state.update { it.copy(asset = updated ?: it.asset, returns = returns ?: it.returns) }
                 }
             } catch (t: Throwable) {
                 _state.update { it.copy(errorMessage = "Couldn't delete lot. Try again.") }

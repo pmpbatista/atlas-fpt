@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.atlasfpt.domain.model.LotType
 import java.time.LocalDate
 
 @Entity(
@@ -24,4 +25,5 @@ data class FinancialLotEntity(
     val purchaseDate: LocalDate,
     val quantity: Double,
     val pricePerUnit: Double,
+    val lotType: LotType = LotType.BUY,
 )

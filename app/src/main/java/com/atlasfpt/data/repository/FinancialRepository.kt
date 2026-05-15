@@ -11,6 +11,7 @@ import com.atlasfpt.data.db.entity.toEntity
 import com.atlasfpt.domain.model.AssetType
 import com.atlasfpt.domain.model.FinancialAsset
 import com.atlasfpt.domain.model.FinancialLot
+import com.atlasfpt.domain.model.LotType
 import com.atlasfpt.domain.model.TickerQuote
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -85,6 +86,7 @@ class FinancialRepository @Inject constructor(
             val parent = assetDao.getById(assetId)
                 ?: throw IllegalStateException("Asset $assetId no longer exists")
             val lotId = financialDao.insertLot(lot.toEntity(assetId))
+            validateRunningNetInTxn(assetId)
             recomputeAssetSnapshotInTxn(assetId)
             lotId
         }
@@ -97,7 +99,27 @@ class FinancialRepository @Inject constructor(
                 ?: throw IllegalStateException("Lot ${lot.id} no longer exists")
             require(existing.assetId == assetId) { "Lot ${lot.id} does not belong to asset $assetId" }
             financialDao.updateLot(lot.toEntity(assetId))
+            validateRunningNetInTxn(assetId)
             recomputeAssetSnapshotInTxn(assetId)
+        }
+    }
+
+    /**
+     * Walks the asset's lots in (date, id) order and confirms the running net quantity
+     * never goes negative. Throws [IllegalArgumentException] otherwise — the surrounding
+     * `withTransaction` rolls back, so the offending row never commits.
+     */
+    private suspend fun validateRunningNetInTxn(assetId: Long) {
+        var running = 0.0
+        var firstBadDate: java.time.LocalDate? = null
+        for (entity in financialDao.getAllLotsForAsset(assetId)) {
+            running += if (entity.lotType == LotType.BUY) entity.quantity else -entity.quantity
+            if (running < -1e-9 && firstBadDate == null) firstBadDate = entity.purchaseDate
+        }
+        if (firstBadDate != null) {
+            throw IllegalArgumentException(
+                "Sale exceeds shares held on $firstBadDate"
+            )
         }
     }
 
