@@ -21,7 +21,6 @@ class GetTimelineUseCaseTest {
 
     private val cat = Category(1L, "Food", "", 0, CategoryType.EXPENSE)
     private val maria = Person(1L, "Maria")
-    private val joao = Person(2L, "João")
 
     private fun tx(id: Long, amount: Double, persons: List<Person>) = Transaction(
         id = id,
@@ -38,38 +37,15 @@ class GetTimelineUseCaseTest {
     )
 
     @Test
-    fun `empty filter returns all transactions`() = runTest {
+    fun `returns all transactions grouped by day`() = runTest {
         every { repo.observeAll() } returns flowOf(listOf(tx(1, 10.0, listOf(maria)), tx(2, 20.0, emptyList())))
         every { repo.observeScheduled() } returns flowOf(emptyList())
 
         val sut = GetTimelineUseCase(repo)
 
-        sut(personFilterIds = emptySet()).test {
+        sut().test {
             val data = awaitItem()
             assertEquals(2, data.days.first().rows.size)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `non-empty filter keeps only matching persons and drops empty-persons rows`() = runTest {
-        every { repo.observeAll() } returns flowOf(
-            listOf(
-                tx(1, 10.0, listOf(maria)),
-                tx(2, 20.0, listOf(joao)),
-                tx(3, 30.0, listOf(maria, joao)),
-                tx(4, 40.0, emptyList())
-            )
-        )
-        every { repo.observeScheduled() } returns flowOf(emptyList())
-
-        val sut = GetTimelineUseCase(repo)
-
-        sut(personFilterIds = setOf(maria.id)).test {
-            val data = awaitItem()
-            val rows = data.days.flatMap { it.rows }.map { it.transaction.id }.toSet()
-            // tx 1 (Maria), tx 3 (Maria+João) match; tx 2 (João only) and tx 4 (none) don't
-            assertEquals(setOf(1L, 3L), rows)
             cancelAndIgnoreRemainingEvents()
         }
     }
