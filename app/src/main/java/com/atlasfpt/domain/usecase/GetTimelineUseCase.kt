@@ -74,9 +74,15 @@ class GetTimelineUseCase @Inject constructor(
 
     private fun buildMonthlyBars(transactions: List<Transaction>): List<CashFlowBar> {
         val today = YearMonth.now()
-        val window = (5 downTo 0).map { today.minusMonths(it.toLong()) }
+        val earliest = transactions.minOfOrNull { YearMonth.from(it.date) } ?: today
+        val months = mutableListOf<YearMonth>()
+        var cursor = if (earliest.isAfter(today)) today else earliest
+        while (!cursor.isAfter(today)) {
+            months += cursor
+            cursor = cursor.plusMonths(1)
+        }
         val byMonth = transactions.groupBy { YearMonth.from(it.date) }
-        return window.map { month ->
+        return months.map { month ->
             val rows = byMonth[month].orEmpty()
             CashFlowBar(
                 label = month.atDay(1).format(MONTH_LABEL_FORMATTER),
