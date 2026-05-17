@@ -17,23 +17,18 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.atlasfpt.domain.usecase.MonthBar
+import com.atlasfpt.domain.usecase.CashFlowBar
 import com.atlasfpt.ui.theme.ExpenseColor
 import com.atlasfpt.ui.theme.IncomeColor
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import kotlin.math.max
 
 private const val BAR_HEIGHT_DP = 160
 private const val CURRENT_ALPHA = 1.0f
 private const val PRIOR_ALPHA = 0.55f
 
-private val BAR_LABEL_FORMATTER: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("MMM\nyyyy", Locale("pt", "PT"))
-
 @Composable
 fun CashFlowBarChart(
-    bars: List<MonthBar>,
+    bars: List<CashFlowBar>,
     modifier: Modifier = Modifier
 ) {
     if (bars.isEmpty()) return
@@ -103,7 +98,7 @@ fun CashFlowBarChart(
                     contentAlignment = androidx.compose.ui.Alignment.Center
                 ) {
                     Text(
-                        text = bar.month.atDay(1).format(BAR_LABEL_FORMATTER),
+                        text = bar.label,
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

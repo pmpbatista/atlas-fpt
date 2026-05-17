@@ -8,26 +8,28 @@ import com.atlasfpt.domain.model.Transaction
 import com.atlasfpt.domain.usecase.DeleteTransactionUseCase
 import com.atlasfpt.domain.usecase.GetTimelineUseCase
 import com.atlasfpt.domain.usecase.TimelineData
+import com.atlasfpt.domain.usecase.TimelineMode
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-enum class RangeMode { ByMonths, ByWeeks }
 
 data class TimelineUiState(
     val timelineData: TimelineData = TimelineData(),
     val settings: AppSettings = AppSettings(),
     val pendingDelete: Transaction? = null,
-    val rangeMode: RangeMode = RangeMode.ByMonths,
+    val mode: TimelineMode = TimelineMode.Monthly,
     val isLoading: Boolean = true
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TimelineViewModel @Inject constructor(
     private val getTimeline: GetTimelineUseCase,
@@ -36,19 +38,21 @@ class TimelineViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val pendingDelete = MutableStateFlow<Transaction?>(null)
-    private val rangeMode = MutableStateFlow(RangeMode.ByMonths)
+    private val mode = MutableStateFlow(TimelineMode.Monthly)
+
+    private val timelineFlow = mode.flatMapLatest { m -> getTimeline(m) }
 
     val uiState: StateFlow<TimelineUiState> = combine(
-        getTimeline(),
+        timelineFlow,
         settingsRepository.settings,
         pendingDelete,
-        rangeMode
-    ) { timeline, settings, pending, mode ->
+        mode
+    ) { timeline, settings, pending, m ->
         TimelineUiState(
             timelineData = timeline,
             settings = settings,
             pendingDelete = pending,
-            rangeMode = mode,
+            mode = m,
             isLoading = false
         )
     }.stateIn(
@@ -70,5 +74,5 @@ class TimelineViewModel @Inject constructor(
     }
 
     fun undoDelete() { pendingDelete.value = null }
-    fun onRangeModeSelected(mode: RangeMode) { rangeMode.value = mode }
+    fun onModeSelected(newMode: TimelineMode) { mode.value = newMode }
 }

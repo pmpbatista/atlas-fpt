@@ -48,6 +48,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.atlasfpt.domain.usecase.DayGroup
 import com.atlasfpt.domain.usecase.ScheduledRollup
+import com.atlasfpt.domain.usecase.TimelineMode
 import com.atlasfpt.ui.component.CashFlowBarChart
 import com.atlasfpt.ui.component.TransactionRow
 import com.atlasfpt.ui.navigation.Screen
@@ -107,8 +108,8 @@ fun TimelineScreen(
             }
             item {
                 FilterChipsRow(
-                    rangeMode = uiState.rangeMode,
-                    onRangeModeSelected = viewModel::onRangeModeSelected,
+                    mode = uiState.mode,
+                    onModeSelected = viewModel::onModeSelected,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
                 )
             }
@@ -170,30 +171,34 @@ private fun CashFlowHeader(headerTotal: Double, currencySymbol: String) {
 
 @Composable
 private fun FilterChipsRow(
-    rangeMode: RangeMode,
-    onRangeModeSelected: (RangeMode) -> Unit,
+    mode: TimelineMode,
+    onModeSelected: (TimelineMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var rangeMenuOpen by remember { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Box {
             AssistChip(
-                onClick = { rangeMenuOpen = true },
-                label = { Text(if (rangeMode == RangeMode.ByMonths) "By months" else "By weeks") },
+                onClick = { menuOpen = true },
+                label = { Text(modeLabel(mode)) },
                 trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) }
             )
-            DropdownMenu(expanded = rangeMenuOpen, onDismissRequest = { rangeMenuOpen = false }) {
-                DropdownMenuItem(
-                    text = { Text("By months") },
-                    onClick = { onRangeModeSelected(RangeMode.ByMonths); rangeMenuOpen = false }
-                )
-                DropdownMenuItem(
-                    text = { Text("By weeks") },
-                    onClick = { onRangeModeSelected(RangeMode.ByWeeks); rangeMenuOpen = false }
-                )
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                TimelineMode.entries.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(modeLabel(option)) },
+                        onClick = { onModeSelected(option); menuOpen = false }
+                    )
+                }
             }
         }
     }
+}
+
+private fun modeLabel(mode: TimelineMode): String = when (mode) {
+    TimelineMode.Monthly -> "Monthly"
+    TimelineMode.Annual -> "Annual"
+    TimelineMode.Total -> "Total"
 }
 
 @Composable
