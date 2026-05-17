@@ -117,6 +117,8 @@ fun TimelineScreen(
                 item {
                     CashFlowBarChart(
                         bars = data.bars,
+                        selectedIndex = uiState.selectedBarIndex,
+                        onBarSelected = viewModel::onBarSelected,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }

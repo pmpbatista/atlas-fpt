@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.atlasfpt.data.settings.AppSettings
 import com.atlasfpt.data.settings.SettingsRepository
 import com.atlasfpt.domain.model.Transaction
+import com.atlasfpt.domain.usecase.CashFlowBar
 import com.atlasfpt.domain.usecase.DeleteTransactionUseCase
 import com.atlasfpt.domain.usecase.GetTimelineUseCase
 import com.atlasfpt.domain.usecase.TimelineData
@@ -26,6 +27,7 @@ data class TimelineUiState(
     val settings: AppSettings = AppSettings(),
     val pendingDelete: Transaction? = null,
     val mode: TimelineMode = TimelineMode.Monthly,
+    val selectedBarIndex: Int = -1,
     val isLoading: Boolean = true
 )
 
@@ -39,6 +41,8 @@ class TimelineViewModel @Inject constructor(
 
     private val pendingDelete = MutableStateFlow<Transaction?>(null)
     private val mode = MutableStateFlow(TimelineMode.Monthly)
+    // null = follow the latest bar; an explicit index pins the selection.
+    private val selectedBarIndex = MutableStateFlow<Int?>(null)
 
     private val timelineFlow = mode.flatMapLatest { m -> getTimeline(m) }
 
@@ -46,13 +50,17 @@ class TimelineViewModel @Inject constructor(
         timelineFlow,
         settingsRepository.settings,
         pendingDelete,
-        mode
-    ) { timeline, settings, pending, m ->
+        mode,
+        selectedBarIndex
+    ) { data, settings, pending, m, selIdx ->
+        val effectiveIdx = effectiveIndex(data.bars, selIdx)
+        val scoped = scopeToSelectedBar(data, effectiveIdx)
         TimelineUiState(
-            timelineData = timeline,
+            timelineData = scoped,
             settings = settings,
             pendingDelete = pending,
             mode = m,
+            selectedBarIndex = effectiveIdx,
             isLoading = false
         )
     }.stateIn(
@@ -60,6 +68,22 @@ class TimelineViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = TimelineUiState()
     )
+
+    private fun effectiveIndex(bars: List<CashFlowBar>, pinned: Int?): Int {
+        if (bars.isEmpty()) return -1
+        val maxIdx = bars.size - 1
+        return pinned?.coerceIn(0, maxIdx) ?: maxIdx
+    }
+
+    private fun scopeToSelectedBar(data: TimelineData, idx: Int): TimelineData {
+        val bar = data.bars.getOrNull(idx) ?: return data
+        val range = bar.periodStart..bar.periodEnd
+        val scopedDays = data.days.filter { it.date in range }
+        return data.copy(
+            headerTotal = scopedDays.sumOf { it.net },
+            days = scopedDays
+        )
+    }
 
     fun requestDelete(transaction: Transaction) {
         pendingDelete.value = transaction
@@ -74,5 +98,13 @@ class TimelineViewModel @Inject constructor(
     }
 
     fun undoDelete() { pendingDelete.value = null }
-    fun onModeSelected(newMode: TimelineMode) { mode.value = newMode }
+
+    fun onModeSelected(newMode: TimelineMode) {
+        mode.value = newMode
+        selectedBarIndex.value = null
+    }
+
+    fun onBarSelected(index: Int) {
+        selectedBarIndex.value = index
+    }
 }
