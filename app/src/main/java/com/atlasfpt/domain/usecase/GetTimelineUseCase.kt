@@ -6,11 +6,18 @@ import com.atlasfpt.domain.model.TransactionType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.time.LocalDate
+import java.time.Year
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import javax.inject.Inject
 
-data class MonthBar(
-    val month: YearMonth,
+enum class TimelineMode { Monthly, Annual, Total }
+
+data class CashFlowBar(
+    val label: String,
+    val periodStart: LocalDate,
+    val periodEnd: LocalDate,
     val income: Double,
     val expense: Double,
     val isCurrent: Boolean
@@ -32,15 +39,18 @@ data class DayGroup(
 
 data class TimelineData(
     val headerTotal: Double = 0.0,
-    val bars: List<MonthBar> = emptyList(),
+    val bars: List<CashFlowBar> = emptyList(),
     val scheduled: ScheduledRollup? = null,
     val days: List<DayGroup> = emptyList()
 )
 
+private val MONTH_LABEL_FORMATTER: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("MMM\nyyyy", Locale("pt", "PT"))
+
 class GetTimelineUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository
 ) {
-    operator fun invoke(): Flow<TimelineData> = combine(
+    operator fun invoke(mode: TimelineMode = TimelineMode.Monthly): Flow<TimelineData> = combine(
         transactionRepository.observeAll(),
         transactionRepository.observeScheduled()
     ) { all, scheduled ->
@@ -49,22 +59,78 @@ class GetTimelineUseCase @Inject constructor(
         }
         TimelineData(
             headerTotal = headerTotal,
-            bars = buildBars(all),
+            bars = buildBars(all, mode),
             scheduled = buildScheduled(scheduled),
             days = buildDays(all)
         )
     }
 
-    private fun buildBars(transactions: List<Transaction>): List<MonthBar> {
+    private fun buildBars(transactions: List<Transaction>, mode: TimelineMode): List<CashFlowBar> =
+        when (mode) {
+            TimelineMode.Monthly -> buildMonthlyBars(transactions)
+            TimelineMode.Annual -> buildAnnualBars(transactions)
+            TimelineMode.Total -> buildTotalBar(transactions)
+        }
+
+    private fun buildMonthlyBars(transactions: List<Transaction>): List<CashFlowBar> {
         val today = YearMonth.now()
         val window = (5 downTo 0).map { today.minusMonths(it.toLong()) }
         val byMonth = transactions.groupBy { YearMonth.from(it.date) }
         return window.map { month ->
             val rows = byMonth[month].orEmpty()
-            val income = rows.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-            val expense = rows.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
-            MonthBar(month, income, expense, isCurrent = month == today)
+            CashFlowBar(
+                label = month.atDay(1).format(MONTH_LABEL_FORMATTER),
+                periodStart = month.atDay(1),
+                periodEnd = month.atEndOfMonth(),
+                income = rows.filter { it.type == TransactionType.INCOME }.sumOf { it.amount },
+                expense = rows.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount },
+                isCurrent = month == today
+            )
         }
+    }
+
+    private fun buildAnnualBars(transactions: List<Transaction>): List<CashFlowBar> {
+        val today = Year.now()
+        val byYear = transactions.groupBy { Year.from(it.date) }
+        val years = (byYear.keys + today).toSortedSet()
+        return years.map { year ->
+            val rows = byYear[year].orEmpty()
+            CashFlowBar(
+                label = year.value.toString(),
+                periodStart = year.atDay(1),
+                periodEnd = year.atMonth(12).atEndOfMonth(),
+                income = rows.filter { it.type == TransactionType.INCOME }.sumOf { it.amount },
+                expense = rows.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount },
+                isCurrent = year == today
+            )
+        }
+    }
+
+    private fun buildTotalBar(transactions: List<Transaction>): List<CashFlowBar> {
+        val today = LocalDate.now()
+        if (transactions.isEmpty()) {
+            return listOf(
+                CashFlowBar(
+                    label = "All",
+                    periodStart = today,
+                    periodEnd = today,
+                    income = 0.0,
+                    expense = 0.0,
+                    isCurrent = true
+                )
+            )
+        }
+        val sorted = transactions.map { it.date }.sorted()
+        return listOf(
+            CashFlowBar(
+                label = "All",
+                periodStart = sorted.first(),
+                periodEnd = maxOf(sorted.last(), today),
+                income = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount },
+                expense = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount },
+                isCurrent = true
+            )
+        )
     }
 
     private fun buildScheduled(scheduled: List<Transaction>): ScheduledRollup? {
