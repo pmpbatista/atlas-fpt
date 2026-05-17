@@ -1,7 +1,6 @@
 package com.atlasfpt.ui.feature.timeline
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.DonutLarge
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,7 +31,6 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -127,12 +123,6 @@ fun TimelineScreen(
                     )
                 }
             }
-            item {
-                SpendingOverviewPill(
-                    onClick = { navController.navigate(Screen.Overview.route) },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
             data.scheduled?.let { rollup ->
                 item {
                     ScheduledRollupRow(rollup = rollup, currencySymbol = symbol)
@@ -219,37 +209,6 @@ private fun FilterChipsRow(
             selectedIds = selectedPersonIds,
             onSelectionChanged = onPersonsSelected
         )
-    }
-}
-
-@Composable
-private fun SpendingOverviewPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = modifier.clickable(onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.DonutLarge,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Spending Overview",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f)
-            )
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
     }
 }
 
