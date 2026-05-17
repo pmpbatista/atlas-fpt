@@ -1,9 +1,11 @@
 ---
-description: Freshly build the debug APK and copy it to Google Drive with the version number appended.
-allowed-tools: Bash(./gradlew*), Bash(grep*), Bash(cp*), Bash(ls*), Bash(rm*)
+description: Build the debug APK and copy it to Google Drive with the version number appended.
+allowed-tools: Bash(./gradlew*), Bash(grep*), Bash(cp*), Bash(ls*)
 ---
 
-Build a fresh debug APK and copy it to Google Drive with the app's versionName appended to the filename. Do not ask for confirmation at any step.
+Build the debug APK and copy it to Google Drive with the app's versionName appended to the filename. Do not ask for confirmation at any step.
+
+The Drive folder keeps one APK per version (filename suffix handles this). If the version was not bumped since the last upload, the existing `app-debug-<version>.apk` in Drive is overwritten — that's intentional and the desired behavior.
 
 ## Steps
 
@@ -13,12 +15,11 @@ Build a fresh debug APK and copy it to Google Drive with the app's versionName a
    ```
    Extract the quoted value (e.g. `"1.1"`). If not found, stop and report.
 
-2. **Force a fresh build** — delete the existing APK so Gradle doesn't short-circuit as `UP-TO-DATE`:
+2. **Build**:
    ```
-   rm -f app/build/outputs/apk/debug/app-debug.apk
    ./gradlew assembleDebug
    ```
-   If the build fails, stop and surface the error.
+   Gradle's `UP-TO-DATE` is fine — it means no source changed since the last build, so the existing APK already reflects current source. If the build fails, stop and surface the error.
 
 3. **Copy to Drive** with the version appended:
    ```
