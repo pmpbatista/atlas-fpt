@@ -22,14 +22,12 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DonutLarge
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -167,32 +165,18 @@ private fun CashFlowHeader(headerTotal: Double, currencySymbol: String) {
         modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            IconButton(
-                onClick = { /* search — future */ },
-                enabled = false,
-                modifier = Modifier.align(Alignment.CenterEnd).padding(end = 8.dp)
-            ) {
-                Icon(Icons.Default.Search, contentDescription = "Search")
-            }
-            Column(
-                modifier = Modifier.align(Alignment.Center),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                val color = if (headerTotal >= 0) IncomeColor else ExpenseColor
-                Text(
-                    text = CurrencyFormatter.formatAbsolute(abs(headerTotal), currencySymbol),
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = color
-                )
-                Text(
-                    text = "Cash Flow",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        val color = if (headerTotal >= 0) IncomeColor else ExpenseColor
+        Text(
+            text = CurrencyFormatter.formatAbsolute(abs(headerTotal), currencySymbol),
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Text(
+            text = "Cash Flow",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(modifier = Modifier.height(8.dp))
     }
 }
