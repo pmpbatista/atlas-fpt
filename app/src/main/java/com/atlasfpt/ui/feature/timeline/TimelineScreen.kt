@@ -109,9 +109,6 @@ fun TimelineScreen(
                 FilterChipsRow(
                     rangeMode = uiState.rangeMode,
                     onRangeModeSelected = viewModel::onRangeModeSelected,
-                    persons = uiState.availablePersons,
-                    selectedPersonIds = uiState.selectedPersonIds,
-                    onPersonsSelected = viewModel::onPersonsSelected,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
                 )
             }
@@ -175,18 +172,10 @@ private fun CashFlowHeader(headerTotal: Double, currencySymbol: String) {
 private fun FilterChipsRow(
     rangeMode: RangeMode,
     onRangeModeSelected: (RangeMode) -> Unit,
-    persons: List<com.atlasfpt.domain.model.Person>,
-    selectedPersonIds: Set<Long>,
-    onPersonsSelected: (Set<Long>) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var rangeMenuOpen by remember { mutableStateOf(false) }
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        AssistChip(
-            onClick = { /* wallet menu — future */ },
-            label = { Text("All Wallets") },
-            trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) }
-        )
         Box {
             AssistChip(
                 onClick = { rangeMenuOpen = true },
@@ -204,11 +193,6 @@ private fun FilterChipsRow(
                 )
             }
         }
-        com.atlasfpt.ui.component.PersonsFilterChip(
-            persons = persons,
-            selectedIds = selectedPersonIds,
-            onSelectionChanged = onPersonsSelected
-        )
     }
 }
 
