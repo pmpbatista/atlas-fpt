@@ -12,4 +12,5 @@ SESSION_STATUS.md
 .cxx
 local.properties
 .worktrees/
+.claude/worktrees/
 .superpowers/
