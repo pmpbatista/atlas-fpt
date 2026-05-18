@@ -17,11 +17,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -31,11 +35,12 @@ import com.atlasfpt.ui.theme.ExpenseColor
 import com.atlasfpt.ui.theme.IncomeColor
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
-import androidx.compose.runtime.snapshotFlow
 import kotlin.math.max
 
 private val BAR_HEIGHT = 160.dp
 private val SLOT_WIDTH = 52.dp
+private val BAR_WIDTH_MAX = 24.dp
+private const val BAR_WIDTH_FRACTION = 0.4f
 private const val SELECTED_ALPHA = 1.0f
 private const val UNSELECTED_ALPHA = 0.4f
 
@@ -48,7 +53,7 @@ fun CashFlowBarChart(
 ) {
     if (bars.isEmpty()) return
 
-    val maxValue = remember(bars) {
+    val maxAbs = remember(bars) {
         max(
             bars.maxOf { it.income },
             bars.maxOf { it.expense }
@@ -57,7 +62,6 @@ fun CashFlowBarChart(
 
     val scrollState = rememberScrollState()
     val totalWidth = SLOT_WIDTH * bars.size
-    // Re-anchor to the right whenever the bar set changes (mode switch, new data).
     val anchorKey = bars.firstOrNull()?.periodStart to bars.size
     LaunchedEffect(anchorKey) {
         snapshotFlow { scrollState.maxValue }
@@ -72,44 +76,33 @@ fun CashFlowBarChart(
                 Canvas(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
                     val w = size.width
                     val h = size.height
-                    val gridColor = androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.3f)
-                    val dashed = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
-
-                    listOf(0f, 0.5f, 1f).forEach { f ->
-                        val y = h - h * f
-                        drawLine(
-                            color = gridColor,
-                            start = Offset(0f, y),
-                            end = Offset(w, y),
-                            strokeWidth = 1f,
-                            pathEffect = if (f == 0f) null else dashed
-                        )
-                    }
-
+                    val zeroY = h / 2f
+                    val halfH = h / 2f
                     val slotWidth = w / bars.size
-                    val barWidth = (slotWidth * 0.32f).coerceAtMost(20.dp.toPx())
-                    val gap = slotWidth * 0.06f
-                    val pairWidth = barWidth * 2 + gap
+                    val barWidth = (slotWidth * BAR_WIDTH_FRACTION)
+                        .coerceAtMost(BAR_WIDTH_MAX.toPx())
+
+                    drawGrid(w = w, h = h, zeroY = zeroY)
 
                     bars.forEachIndexed { index, bar ->
                         val cx = slotWidth * index + slotWidth / 2f
-                        val pairLeft = cx - pairWidth / 2f
+                        val barLeft = cx - barWidth / 2f
                         val alpha = if (index == selectedIndex) SELECTED_ALPHA else UNSELECTED_ALPHA
 
-                        val incomeH = (bar.income / maxValue).toFloat() * h
+                        val incomeH = (bar.income / maxAbs).toFloat() * halfH
                         drawBar(
                             color = IncomeColor.copy(alpha = alpha),
-                            left = pairLeft,
-                            bottom = h,
+                            left = barLeft,
+                            top = zeroY - incomeH,
                             width = barWidth,
                             height = incomeH
                         )
 
-                        val expenseH = (bar.expense / maxValue).toFloat() * h
+                        val expenseH = (bar.expense / maxAbs).toFloat() * halfH
                         drawBar(
                             color = ExpenseColor.copy(alpha = alpha),
-                            left = pairLeft + barWidth + gap,
-                            bottom = h,
+                            left = barLeft,
+                            top = zeroY,
                             width = barWidth,
                             height = expenseH
                         )
@@ -151,17 +144,45 @@ fun CashFlowBarChart(
     }
 }
 
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBar(
-    color: androidx.compose.ui.graphics.Color,
+private fun DrawScope.drawGrid(w: Float, h: Float, zeroY: Float) {
+    val dashedColor = Color.Gray.copy(alpha = 0.3f)
+    val zeroColor = Color.Gray.copy(alpha = 0.5f)
+    val dashed = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
+
+    drawLine(
+        color = dashedColor,
+        start = Offset(0f, 0f),
+        end = Offset(w, 0f),
+        strokeWidth = 1f,
+        pathEffect = dashed
+    )
+    drawLine(
+        color = dashedColor,
+        start = Offset(0f, h),
+        end = Offset(w, h),
+        strokeWidth = 1f,
+        pathEffect = dashed
+    )
+    drawLine(
+        color = zeroColor,
+        start = Offset(0f, zeroY),
+        end = Offset(w, zeroY),
+        strokeWidth = 1f
+    )
+}
+
+private fun DrawScope.drawBar(
+    color: Color,
     left: Float,
-    bottom: Float,
+    top: Float,
     width: Float,
     height: Float
 ) {
-    val cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx(), 4.dp.toPx())
+    if (height <= 0f) return
+    val cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
     drawRoundRect(
         color = color,
-        topLeft = Offset(left, bottom - height),
+        topLeft = Offset(left, top),
         size = Size(width, height),
         cornerRadius = cornerRadius
     )
