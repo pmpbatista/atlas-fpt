@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -37,7 +38,10 @@ import com.atlasfpt.ui.theme.ExpenseColor
 import com.atlasfpt.ui.theme.IncomeColor
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlin.math.floor
+import kotlin.math.log10
 import kotlin.math.max
+import kotlin.math.pow
 
 private val BAR_HEIGHT = 160.dp
 private val SLOT_WIDTH = 52.dp
@@ -47,6 +51,8 @@ private const val SELECTED_ALPHA = 1.0f
 private const val UNSELECTED_ALPHA = 0.4f
 private val NET_LINE_STROKE = 2.dp
 private val NET_DOT_RADIUS = 3.5.dp
+private val GUTTER_WIDTH = 40.dp
+private const val TICKS_PER_HALF = 2
 
 @Composable
 fun CashFlowBarChart(
@@ -68,6 +74,8 @@ fun CashFlowBarChart(
         DoubleArray(bars.size) { bars[it].income - bars[it].expense }
     }
 
+    val tickStep = remember(maxAbs) { niceStepFloor(maxAbs / TICKS_PER_HALF.toDouble()) }
+
     val scrollState = rememberScrollState()
     val totalWidth = SLOT_WIDTH * bars.size
     val anchorKey = bars.firstOrNull()?.periodStart to bars.size
@@ -78,7 +86,12 @@ fun CashFlowBarChart(
             .let { scrollState.scrollTo(it) }
     }
 
-    Column(modifier = modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.Top) {
+        AxisGutter(
+            tickStep = tickStep,
+            maxAbs = maxAbs,
+            modifier = Modifier.width(GUTTER_WIDTH).height(BAR_HEIGHT)
+        )
         Column(modifier = Modifier.horizontalScroll(scrollState)) {
             Box(modifier = Modifier.width(totalWidth).height(BAR_HEIGHT)) {
                 Canvas(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
@@ -90,7 +103,13 @@ fun CashFlowBarChart(
                     val barWidth = (slotWidth * BAR_WIDTH_FRACTION)
                         .coerceAtMost(BAR_WIDTH_MAX.toPx())
 
-                    drawGrid(w = w, h = h, zeroY = zeroY)
+                    drawGrid(
+                        w = w,
+                        halfH = halfH,
+                        zeroY = zeroY,
+                        maxAbs = maxAbs,
+                        tickStep = tickStep
+                    )
 
                     bars.forEachIndexed { index, bar ->
                         val cx = slotWidth * index + slotWidth / 2f
@@ -161,25 +180,111 @@ fun CashFlowBarChart(
     }
 }
 
-private fun DrawScope.drawGrid(w: Float, h: Float, zeroY: Float) {
-    val dashedColor = Color.Gray.copy(alpha = 0.3f)
-    val zeroColor = Color.Gray.copy(alpha = 0.5f)
-    val dashed = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
+@Composable
+private fun AxisGutter(
+    tickStep: Double,
+    maxAbs: Double,
+    modifier: Modifier = Modifier
+) {
+    Layout(
+        modifier = modifier,
+        content = {
+            val zeroColor = MaterialTheme.colorScheme.onSurface
+            val tickColor = MaterialTheme.colorScheme.onSurfaceVariant
+            val labelStyle = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp)
 
-    drawLine(
-        color = dashedColor,
-        start = Offset(0f, 0f),
-        end = Offset(w, 0f),
-        strokeWidth = 1f,
-        pathEffect = dashed
-    )
-    drawLine(
-        color = dashedColor,
-        start = Offset(0f, h),
-        end = Offset(w, h),
-        strokeWidth = 1f,
-        pathEffect = dashed
-    )
+            // Order: -2*step, -step, 0, +step, +2*step
+            for (i in -TICKS_PER_HALF..TICKS_PER_HALF) {
+                val value = tickStep * i
+                Text(
+                    text = formatAxisLabel(value),
+                    style = labelStyle,
+                    color = if (i == 0) zeroColor else tickColor,
+                    maxLines = 1,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.padding(end = 4.dp)
+                )
+            }
+        }
+    ) { measurables, constraints ->
+        val width = constraints.maxWidth
+        val height = constraints.maxHeight
+        val halfH = height / 2f
+        val placeables = measurables.map { it.measure(constraints.copy(minWidth = 0, minHeight = 0)) }
+
+        layout(width, height) {
+            placeables.forEachIndexed { idx, placeable ->
+                val tickIndex = idx - TICKS_PER_HALF  // -2..2
+                val value = tickStep * tickIndex
+                val tickFraction = (value / maxAbs).toFloat().coerceIn(-1f, 1f)
+                val yCenter = halfH - tickFraction * halfH
+                val x = width - placeable.width
+                val y = yCenter.toInt() - placeable.height / 2
+                placeable.placeRelative(x = x, y = y)
+            }
+        }
+    }
+}
+
+private fun niceStepFloor(raw: Double): Double {
+    if (raw <= 0.0) return 1.0
+    val exponent = floor(log10(raw))
+    val pow = 10.0.pow(exponent)
+    val fraction = raw / pow
+    val niceFraction = when {
+        fraction >= 5.0 -> 5.0
+        fraction >= 2.0 -> 2.0
+        else -> 1.0
+    }
+    return niceFraction * pow
+}
+
+private fun formatAxisLabel(value: Double): String {
+    if (value == 0.0) return "0"
+    val abs = kotlin.math.abs(value)
+    val sign = if (value < 0) "−" else ""
+    val body = if (abs >= 1000.0) {
+        val k = abs / 1000.0
+        if (k == k.toLong().toDouble()) "${k.toLong()}k"
+        else String.format(java.util.Locale.US, "%.1fk", k).replace('.', ',')
+    } else {
+        if (abs == abs.toLong().toDouble()) "${abs.toLong()}"
+        else String.format(java.util.Locale.US, "%.1f", abs).replace('.', ',')
+    }
+    return "$sign$body"
+}
+
+private fun DrawScope.drawGrid(
+    w: Float,
+    halfH: Float,
+    zeroY: Float,
+    maxAbs: Double,
+    tickStep: Double
+) {
+    val zeroColor = Color.Gray.copy(alpha = 0.5f)
+    val tickColor = Color.Gray.copy(alpha = 0.3f)
+    val dotted = PathEffect.dashPathEffect(floatArrayOf(2f, 4f))
+
+    for (i in 1..TICKS_PER_HALF) {
+        val tickValue = tickStep * i
+        val tickFraction = (tickValue / maxAbs).toFloat().coerceAtMost(1f)
+        val tickOffset = tickFraction * halfH
+        drawLine(
+            color = tickColor,
+            start = Offset(0f, zeroY - tickOffset),
+            end = Offset(w, zeroY - tickOffset),
+            strokeWidth = 1f,
+            pathEffect = dotted
+        )
+        drawLine(
+            color = tickColor,
+            start = Offset(0f, zeroY + tickOffset),
+            end = Offset(w, zeroY + tickOffset),
+            strokeWidth = 1f,
+            pathEffect = dotted
+        )
+    }
+
     drawLine(
         color = zeroColor,
         start = Offset(0f, zeroY),
