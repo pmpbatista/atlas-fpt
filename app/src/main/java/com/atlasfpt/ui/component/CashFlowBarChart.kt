@@ -64,6 +64,10 @@ fun CashFlowBarChart(
         ).coerceAtLeast(1.0)
     }
 
+    val nets = remember(bars) {
+        DoubleArray(bars.size) { bars[it].income - bars[it].expense }
+    }
+
     val scrollState = rememberScrollState()
     val totalWidth = SLOT_WIDTH * bars.size
     val anchorKey = bars.firstOrNull()?.periodStart to bars.size
@@ -113,7 +117,7 @@ fun CashFlowBarChart(
                     }
 
                     drawNetLine(
-                        bars = bars,
+                        nets = nets,
                         maxAbs = maxAbs,
                         zeroY = zeroY,
                         halfH = halfH,
@@ -202,40 +206,39 @@ private fun DrawScope.drawBar(
 }
 
 private fun DrawScope.drawNetLine(
-    bars: List<CashFlowBar>,
+    nets: DoubleArray,
     maxAbs: Double,
     zeroY: Float,
     halfH: Float,
     slotWidth: Float,
     selectedIndex: Int
 ) {
-    val points = bars.mapIndexed { index, bar ->
-        val cx = slotWidth * index + slotWidth / 2f
-        val net = bar.income - bar.expense
-        val y = zeroY - (net / maxAbs).toFloat() * halfH
-        Offset(cx, y)
-    }
-
     val strokePx = NET_LINE_STROKE.toPx()
-    for (i in 0 until points.lastIndex) {
+    for (i in 0 until nets.size - 1) {
         val touchesSelected = (i == selectedIndex) || (i + 1 == selectedIndex)
         val segmentAlpha = if (touchesSelected) SELECTED_ALPHA else UNSELECTED_ALPHA
+        val xStart = slotWidth * i + slotWidth / 2f
+        val yStart = zeroY - (nets[i] / maxAbs).toFloat() * halfH
+        val xEnd = slotWidth * (i + 1) + slotWidth / 2f
+        val yEnd = zeroY - (nets[i + 1] / maxAbs).toFloat() * halfH
         drawLine(
             color = CashFlowNetColor.copy(alpha = segmentAlpha),
-            start = points[i],
-            end = points[i + 1],
+            start = Offset(xStart, yStart),
+            end = Offset(xEnd, yEnd),
             strokeWidth = strokePx,
             cap = StrokeCap.Round
         )
     }
 
     val dotRadiusPx = NET_DOT_RADIUS.toPx()
-    points.forEachIndexed { index, point ->
-        val dotAlpha = if (index == selectedIndex) SELECTED_ALPHA else UNSELECTED_ALPHA
+    for (i in nets.indices) {
+        val dotAlpha = if (i == selectedIndex) SELECTED_ALPHA else UNSELECTED_ALPHA
+        val cx = slotWidth * i + slotWidth / 2f
+        val cy = zeroY - (nets[i] / maxAbs).toFloat() * halfH
         drawCircle(
             color = CashFlowNetColor.copy(alpha = dotAlpha),
             radius = dotRadiusPx,
-            center = point
+            center = Offset(cx, cy)
         )
     }
 }
