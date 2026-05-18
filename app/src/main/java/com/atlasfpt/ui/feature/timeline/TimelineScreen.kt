@@ -104,13 +104,11 @@ fun TimelineScreen(
 
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
             item {
-                CashFlowHeader(headerTotal = data.headerTotal, currencySymbol = symbol)
-            }
-            item {
-                FilterChipsRow(
+                TimelineHeader(
                     mode = uiState.mode,
-                    onModeSelected = viewModel::onModeSelected,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                    headerTotal = data.headerTotal,
+                    currencySymbol = symbol,
+                    onModeSelected = viewModel::onModeSelected
                 )
             }
             if (data.bars.isNotEmpty()) {
@@ -150,39 +148,27 @@ fun TimelineScreen(
 }
 
 @Composable
-private fun CashFlowHeader(headerTotal: Double, currencySymbol: String) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        val color = if (headerTotal >= 0) IncomeColor else ExpenseColor
-        Text(
-            text = CurrencyFormatter.formatAbsolute(abs(headerTotal), currencySymbol),
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-        Text(
-            text = "Cash Flow",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-    }
-}
-
-@Composable
-private fun FilterChipsRow(
+private fun TimelineHeader(
     mode: TimelineMode,
+    headerTotal: Double,
+    currencySymbol: String,
     onModeSelected: (TimelineMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var menuOpen by remember { mutableStateOf(false) }
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    val color = if (headerTotal >= 0) IncomeColor else ExpenseColor
+    val label = modeLabel(mode)
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Box {
             AssistChip(
                 onClick = { menuOpen = true },
-                label = { Text(modeLabel(mode)) },
+                label = { Text(label) },
                 trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) }
             )
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -192,6 +178,24 @@ private fun FilterChipsRow(
                         onClick = { onModeSelected(option); menuOpen = false }
                     )
                 }
+            }
+        }
+        Box(
+            modifier = Modifier.weight(1f),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = CurrencyFormatter.formatAbsolute(abs(headerTotal), currencySymbol),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = color
+                )
+                Text(
+                    text = "$label Cash Flow",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
