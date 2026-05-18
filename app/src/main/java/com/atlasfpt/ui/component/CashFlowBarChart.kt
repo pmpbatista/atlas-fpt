@@ -25,12 +25,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.atlasfpt.domain.usecase.CashFlowBar
+import com.atlasfpt.ui.theme.CashFlowNetColor
 import com.atlasfpt.ui.theme.ExpenseColor
 import com.atlasfpt.ui.theme.IncomeColor
 import kotlinx.coroutines.flow.filter
@@ -43,6 +45,8 @@ private val BAR_WIDTH_MAX = 24.dp
 private const val BAR_WIDTH_FRACTION = 0.4f
 private const val SELECTED_ALPHA = 1.0f
 private const val UNSELECTED_ALPHA = 0.4f
+private val NET_LINE_STROKE = 2.dp
+private val NET_DOT_RADIUS = 3.5.dp
 
 @Composable
 fun CashFlowBarChart(
@@ -107,6 +111,15 @@ fun CashFlowBarChart(
                             height = expenseH
                         )
                     }
+
+                    drawNetLine(
+                        bars = bars,
+                        maxAbs = maxAbs,
+                        zeroY = zeroY,
+                        halfH = halfH,
+                        slotWidth = slotWidth,
+                        selectedIndex = selectedIndex
+                    )
                 }
                 Row(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
                     bars.forEachIndexed { index, _ ->
@@ -186,4 +199,43 @@ private fun DrawScope.drawBar(
         size = Size(width, height),
         cornerRadius = cornerRadius
     )
+}
+
+private fun DrawScope.drawNetLine(
+    bars: List<CashFlowBar>,
+    maxAbs: Double,
+    zeroY: Float,
+    halfH: Float,
+    slotWidth: Float,
+    selectedIndex: Int
+) {
+    val points = bars.mapIndexed { index, bar ->
+        val cx = slotWidth * index + slotWidth / 2f
+        val net = bar.income - bar.expense
+        val y = zeroY - (net / maxAbs).toFloat() * halfH
+        Offset(cx, y)
+    }
+
+    val strokePx = NET_LINE_STROKE.toPx()
+    for (i in 0 until points.lastIndex) {
+        val touchesSelected = (i == selectedIndex) || (i + 1 == selectedIndex)
+        val segmentAlpha = if (touchesSelected) SELECTED_ALPHA else UNSELECTED_ALPHA
+        drawLine(
+            color = CashFlowNetColor.copy(alpha = segmentAlpha),
+            start = points[i],
+            end = points[i + 1],
+            strokeWidth = strokePx,
+            cap = StrokeCap.Round
+        )
+    }
+
+    val dotRadiusPx = NET_DOT_RADIUS.toPx()
+    points.forEachIndexed { index, point ->
+        val dotAlpha = if (index == selectedIndex) SELECTED_ALPHA else UNSELECTED_ALPHA
+        drawCircle(
+            color = CashFlowNetColor.copy(alpha = dotAlpha),
+            radius = dotRadiusPx,
+            center = point
+        )
+    }
 }
